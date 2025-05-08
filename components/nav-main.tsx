@@ -19,7 +19,7 @@ import {
 	SidebarMenuSubButton,
 	SidebarMenuSubItem,
 } from "~/components/ui/sidebar";
-import { useEternityClient } from "~/hooks/useEternityClient";
+import { useProtocol } from "~/hooks/useProtocol";
 import { useConfigurationStore } from "~/store/useConfigurationStore";
 import { useDeviceStore } from "~/store/useDeviceStore";
 
@@ -38,7 +38,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
 	const { connected } = useDeviceStore();
 	const { loadConfiguration } = useConfigurationStore();
 
-	const { connect, client } = useEternityClient();
+	const { connect, protocol } = useProtocol();
 
 	return (
 		<SidebarGroup>
@@ -49,7 +49,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
 				<Button
 					onClick={async () => {
-						const response = await client.info();
+						const response = await protocol.info();
 
 						console.log(response);
 					}}

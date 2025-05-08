@@ -18,7 +18,7 @@ const COMMANDS = {
 	INFO: "info",
 };
 
-export function useEternityClient() {
+export function useProtocol() {
 	const [serialPort, setSerialPort] = useState<SerialPort | null>(null);
 	const [writer, setWriter] = useState<WritableStreamDefaultWriter<string> | null>(null);
 	const [reader, setReader] = useState<ReadableStreamDefaultReader<string> | null>(null);
@@ -95,5 +95,5 @@ export function useEternityClient() {
 		}
 	}
 
-	return { connect, client: { info } };
+	return { connect, protocol: { info } };
 }
