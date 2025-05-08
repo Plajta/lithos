@@ -5,12 +5,14 @@ import { useState } from "react";
 const EOT = 0x04;
 
 interface ProtocolInfo {
+	type: "bootloader" | "sysiphus";
 	deviceName: string;
 	gitCommitSha: string;
 	version: string;
 	buildDate: Date;
-	flashSize: number;
-	bootloaderSize: number;
+	blockCount: number;
+	freeBlockCount: number;
+	blockSize: number;
 	usesEternity: boolean;
 }
 
@@ -79,17 +81,21 @@ export function useProtocol() {
 		const response = await readLine();
 
 		if (response) {
-			const [deviceName, gitCommitSha, version, buildDate, flashSize, bootloaderSize] = response
+			const [type, deviceName, gitCommitSha, version, buildDate, blockCount, freeBlockCount, blockSize] = response
 				.slice(0, -2)
 				.split(" ");
 
+			console.log(response);
+
 			return {
+				type,
 				deviceName,
 				gitCommitSha,
 				version,
 				buildDate: new Date(buildDate),
-				flashSize: +flashSize,
-				bootloaderSize: +bootloaderSize,
+				blockCount: +blockCount,
+				freeBlockCount: +freeBlockCount,
+				blockSize: +blockSize,
 				usesEternity: !response[response.length],
 			} as ProtocolInfo;
 		}
