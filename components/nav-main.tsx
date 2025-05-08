@@ -66,9 +66,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
 							const file = event.target.files?.[0];
 							if (!file) return;
 
-							const a = await client.push(file, "test");
-
-							console.log(a);
+							await loadConfiguration(file);
 						}}
 					/>
 				</Button>
