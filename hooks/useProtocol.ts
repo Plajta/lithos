@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { info } from "console";
+import { useEffect, useState } from "react";
 
 const EOT = 0x04;
 
+type ProtocolType = "bootloader" | "sisyphus";
+
 interface ProtocolInfo {
-	type: "bootloader" | "sysiphus";
+	type: ProtocolType;
 	deviceName: string;
 	gitCommitSha: string;
 	version: string;
 	buildDate: Date;
 	blockCount: number;
-	freeBlockCount: number;
+	usedBlockCount: number;
 	blockSize: number;
 	usesEternity: boolean;
 }
@@ -24,6 +27,7 @@ export function useProtocol() {
 	const [serialPort, setSerialPort] = useState<SerialPort | null>(null);
 	const [writer, setWriter] = useState<WritableStreamDefaultWriter<string> | null>(null);
 	const [reader, setReader] = useState<ReadableStreamDefaultReader<string> | null>(null);
+	const [protocolInfo, setProtocolInfo] = useState<ProtocolInfo | null>(null);
 
 	async function connect() {
 		if ("serial" in navigator) {
@@ -44,6 +48,18 @@ export function useProtocol() {
 			setSerialPort(port);
 		}
 	}
+
+	useEffect(() => {
+		async function readInfo() {
+			const response = await info();
+
+			if (response) {
+				setProtocolInfo(response);
+			}
+		}
+
+		readInfo();
+	}, [writer, reader]);
 
 	async function readLine() {
 		if (!reader) {
@@ -81,7 +97,7 @@ export function useProtocol() {
 		const response = await readLine();
 
 		if (response) {
-			const [type, deviceName, gitCommitSha, version, buildDate, blockCount, freeBlockCount, blockSize] = response
+			const [type, deviceName, gitCommitSha, version, buildDate, blockCount, usedBlockCount, blockSize] = response
 				.slice(0, -2)
 				.split(" ");
 
@@ -94,12 +110,12 @@ export function useProtocol() {
 				version,
 				buildDate: new Date(buildDate),
 				blockCount: +blockCount,
-				freeBlockCount: +freeBlockCount,
+				usedBlockCount: +usedBlockCount,
 				blockSize: +blockSize,
 				usesEternity: !response[response.length],
 			} as ProtocolInfo;
 		}
 	}
 
-	return { connect, protocol: { info } };
+	return { connect, protocol: { connected: protocolInfo ? { info: protocolInfo! } : null, commands: { info } } };
 }
