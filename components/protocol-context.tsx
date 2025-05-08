@@ -1,7 +1,6 @@
 "use client";
 
-import { info } from "console";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 const EOT = 0x04;
 
@@ -23,7 +22,19 @@ const COMMANDS = {
 	INFO: "info",
 };
 
-export function useProtocol() {
+interface ProtocolContextType {
+	connect: () => Promise<void>;
+	protocol: {
+		connected: { info: ProtocolInfo } | null;
+		commands: {
+			info: () => Promise<ProtocolInfo | undefined>;
+		};
+	};
+}
+
+const ProtocolContext = createContext<ProtocolContextType | undefined>(undefined);
+
+export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	const [serialPort, setSerialPort] = useState<SerialPort | null>(null);
 	const [writer, setWriter] = useState<WritableStreamDefaultWriter<string> | null>(null);
 	const [reader, setReader] = useState<ReadableStreamDefaultReader<string> | null>(null);
@@ -32,7 +43,6 @@ export function useProtocol() {
 	async function connect() {
 		if ("serial" in navigator) {
 			const port = await navigator.serial.requestPort();
-
 			await port.open({ baudRate: 115200 });
 
 			const encoder = new TextEncoderStream();
@@ -51,60 +61,43 @@ export function useProtocol() {
 
 	useEffect(() => {
 		async function readInfo() {
-			const response = await info();
-
-			if (response) {
-				setProtocolInfo(response);
+			if (writer && reader) {
+				const infoData = await info();
+				if (infoData) {
+					setProtocolInfo(infoData);
+				}
 			}
 		}
-
 		readInfo();
 	}, [writer, reader]);
 
 	async function readLine() {
-		if (!reader) {
-			return null;
-		}
-
+		if (!reader) return null;
 		let line = "";
-
 		while (true) {
 			const { value, done }: ReadableStreamReadResult<string> = await reader.read();
-
-			if (done || !value) {
-				return line.trim();
-			}
-
+			if (done || !value) return line.trim();
 			line += value;
-
-			if (line.includes("\n")) {
-				return line.trim();
-			}
+			if (line.includes("\n")) return line.trim();
 		}
 	}
 
 	async function sendCommand(cmd: string) {
-		if (!writer) {
-			return null;
-		}
-
+		if (!writer) return;
 		const text = typeof cmd === "string" ? cmd : new TextDecoder().decode(cmd);
 		await writer.write(text + String.fromCharCode(EOT));
 	}
 
-	async function info() {
+	async function info(): Promise<ProtocolInfo | undefined> {
 		await sendCommand(COMMANDS.INFO);
 		const response = await readLine();
-
 		if (response) {
 			const [type, deviceName, gitCommitSha, version, buildDate, blockCount, usedBlockCount, blockSize] = response
 				.slice(0, -2)
 				.split(" ");
 
-			console.log(response);
-
 			return {
-				type,
+				type: type as ProtocolType,
 				deviceName,
 				gitCommitSha,
 				version,
@@ -113,9 +106,27 @@ export function useProtocol() {
 				usedBlockCount: +usedBlockCount,
 				blockSize: +blockSize,
 				usesEternity: !response[response.length],
-			} as ProtocolInfo;
+			};
 		}
 	}
 
-	return { connect, protocol: { connected: protocolInfo ? { info: protocolInfo! } : null, commands: { info } } };
+	return (
+		<ProtocolContext.Provider
+			value={{
+				connect,
+				protocol: {
+					connected: protocolInfo ? { info: protocolInfo } : null,
+					commands: { info },
+				},
+			}}
+		>
+			{children}
+		</ProtocolContext.Provider>
+	);
+}
+
+export function useProtocol() {
+	const context = useContext(ProtocolContext);
+	if (!context) throw new Error("useProtocol must be used within a ProtocolProvider");
+	return context;
 }

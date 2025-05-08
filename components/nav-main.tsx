@@ -19,7 +19,7 @@ import {
 	SidebarMenuSubButton,
 	SidebarMenuSubItem,
 } from "~/components/ui/sidebar";
-import { useProtocol } from "~/hooks/useProtocol";
+import { useProtocol } from "~/components/protocol-context";
 import { useConfigurationStore } from "~/store/useConfigurationStore";
 
 export interface NavItem {
