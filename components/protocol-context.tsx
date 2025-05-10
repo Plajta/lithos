@@ -67,7 +67,7 @@ interface ProtocolContextType {
 		commands: {
 			info: () => Response<CommandResponse["info"]>;
 			push: (fileBlob: Blob, dest: string) => Response<CommandResponse["push"]>;
-			ls: () => any;
+			ls: () => Response<CommandResponse["ls"]>;
 		};
 	};
 }

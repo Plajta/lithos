@@ -7,10 +7,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/u
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
 
+interface OutputLine {
+	command: string | null;
+	line: string;
+}
+
 export function DeveloperMenu() {
 	const [menuOpen, setMenuOpen] = useState<boolean>(false);
 	const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
-	const [output, setOutput] = useState<string[]>([]);
+	const [output, setOutput] = useState<OutputLine[]>([]);
 
 	const { connect, protocol } = useProtocol();
 
@@ -88,7 +93,7 @@ export function DeveloperMenu() {
 
 											setOutput((prev) => [
 												...prev,
-												`INFO - ${JSON.stringify(response.data)} \n`,
+												{ command: "INFO", line: JSON.stringify(response.data) },
 											]);
 										}}
 									>
@@ -121,7 +126,25 @@ export function DeveloperMenu() {
 										placeholder="file path"
 									/>
 
-									<Button variant="outline" size="sm">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={async () => {
+											const response = await protocol.commands.ls();
+
+											if (response.success) {
+												for (const [index, item] of Object.entries(response.data)) {
+													setOutput((prev) => [
+														...prev,
+														{
+															command: +index === 0 ? "LS" : null,
+															line: JSON.stringify(item),
+														},
+													]);
+												}
+											}
+										}}
+									>
 										ls
 									</Button>
 								</div>
@@ -138,8 +161,10 @@ export function DeveloperMenu() {
 									</div>
 
 									<div className="border rounded-lg p-2 grow flex flex-col gap-1 overflow-y-auto h-0">
-										{output.map((line, index) => (
-											<p key={`line-${index}`}>{line}</p>
+										{output.map(({ command, line }, index) => (
+											<p key={`line-${index}`} className={`${!command && "ml-[31px]"}`}>
+												{command ? `${command} - ` : ""} {line}
+											</p>
 										))}
 									</div>
 								</div>
