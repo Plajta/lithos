@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
 import { Button } from "~/components/ui/button";
@@ -16,6 +17,10 @@ export function DeveloperMenu() {
 	const [menuOpen, setMenuOpen] = useState<boolean>(false);
 	const [keysPressed, setKeysPressed] = useState<Set<string>>(new Set());
 	const [output, setOutput] = useState<OutputLine[]>([]);
+	const [pushFileArguments, setPushFileArguments] = useState<{ blob: Blob | null; dest: string | null }>({
+		blob: null,
+		dest: null,
+	});
 
 	const { connect, protocol } = useProtocol();
 
@@ -102,7 +107,26 @@ export function DeveloperMenu() {
 
 									<div className="col-span-2"></div>
 
-									<Button variant="outline" size="sm">
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={async () => {
+											if (!pushFileArguments.blob || !pushFileArguments.dest) {
+												toast.error("Požadované argumenty nejsou vyplňěny!");
+
+												return;
+											}
+											const response = await protocol.commands.push(
+												pushFileArguments.blob,
+												pushFileArguments.dest
+											);
+
+											setOutput((prev) => [
+												...prev,
+												{ command: "PUSH", line: JSON.stringify(response.data) },
+											]);
+										}}
+									>
 										push
 									</Button>
 
@@ -115,7 +139,7 @@ export function DeveloperMenu() {
 												const file = event.target.files?.[0];
 												if (!file) return;
 
-												console.log(file);
+												setPushFileArguments((prev) => ({ ...prev, blob: file }));
 											}}
 										/>
 									</Button>
@@ -123,7 +147,10 @@ export function DeveloperMenu() {
 									<Input
 										type="text"
 										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
-										placeholder="file path"
+										placeholder="file dest"
+										onChange={(e) =>
+											setPushFileArguments((prev) => ({ ...prev, dest: e.target.value }))
+										}
 									/>
 
 									<Button
