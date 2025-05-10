@@ -21,6 +21,7 @@ export function DeveloperMenu() {
 		blob: null,
 		dest: null,
 	});
+	const [rmArguments, setRmArguments] = useState<string | null>(null);
 
 	const { connect, protocol } = useProtocol();
 
@@ -116,6 +117,7 @@ export function DeveloperMenu() {
 
 												return;
 											}
+
 											const response = await protocol.commands.push(
 												pushFileArguments.blob,
 												pushFileArguments.dest
@@ -174,6 +176,38 @@ export function DeveloperMenu() {
 									>
 										ls
 									</Button>
+
+									<div className="col-span-2"></div>
+
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={async () => {
+											if (!rmArguments) {
+												toast.error("Požadované argumenty nejsou vyplňěny!");
+
+												return;
+											}
+
+											const response = await protocol.commands.rm(rmArguments);
+
+											setOutput((prev) => [
+												...prev,
+												{ command: "RM", line: JSON.stringify(response.data) },
+											]);
+										}}
+									>
+										rm
+									</Button>
+
+									<Input
+										type="text"
+										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
+										placeholder="file path"
+										onChange={(e) => setRmArguments(e.target.value)}
+									/>
+
+									<div className="col-span-1"></div>
 								</div>
 
 								<div className="grow flex flex-col text-sm gap-2">
