@@ -26,6 +26,7 @@ export function DeveloperMenu() {
 		path: null,
 		dest: null,
 	});
+	const [playArguments, setPlayArguments] = useState<string | null>(null);
 
 	const { connect, protocol } = useProtocol();
 
@@ -250,6 +251,36 @@ export function DeveloperMenu() {
 										placeholder="file dest"
 										onChange={(e) => setMvArguments((prev) => ({ ...prev, dest: e.target.value }))}
 									/>
+
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={async () => {
+											if (!playArguments) {
+												toast.error("Požadované argumenty nejsou vyplňěny!");
+
+												return;
+											}
+
+											const response = await protocol.commands.play(playArguments);
+
+											setOutput((prev) => [
+												...prev,
+												{ command: "PLAY", line: JSON.stringify(response.data) },
+											]);
+										}}
+									>
+										play
+									</Button>
+
+									<Input
+										type="text"
+										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
+										placeholder="file path"
+										onChange={(e) => setPlayArguments(e.target.value)}
+									/>
+
+									<div className="col-span-1"></div>
 								</div>
 
 								<div className="grow flex flex-col text-sm gap-2">

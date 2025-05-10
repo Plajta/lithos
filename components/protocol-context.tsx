@@ -36,6 +36,7 @@ interface CommandResponse {
 	ls: FileSystemItem[];
 	rm: string;
 	mv: string;
+	play: string;
 }
 
 function crc32(buf: Uint8Array) {
@@ -60,6 +61,7 @@ const COMMANDS = {
 	LS: "ls",
 	RM: "rm",
 	MV: "mv",
+	PLAY: "play",
 };
 
 type Response<T> = Promise<{ success: boolean; data: T | string }>;
@@ -74,6 +76,7 @@ interface ProtocolContextType {
 			ls: () => Response<CommandResponse["ls"]>;
 			rm: (path: string) => Response<CommandResponse["rm"]>;
 			mv: (path: string, dest: string) => Response<CommandResponse["mv"]>;
+			play: (path: string) => Response<CommandResponse["play"]>;
 		};
 	};
 }
@@ -309,13 +312,31 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			};
 		}
 
-		await refreshInfo();
-
 		return {
 			success: response.startsWith(DEVICE_RESPONSE.ACK),
 			data: response.startsWith(DEVICE_RESPONSE.ACK)
 				? dest
-				: `Removing data from device failed. Error returned from the device: ${response}`,
+				: `Moving data on the device failed. Error returned from the device: ${response}`,
+		};
+	}
+
+	async function play(path: string) {
+		await sendCommand(`${COMMANDS.PLAY} ${path}`);
+
+		const response = await readLine();
+
+		if (!response) {
+			return {
+				success: false,
+				data: "Device returned unxpected response. Play failed.",
+			};
+		}
+
+		return {
+			success: response.startsWith(DEVICE_RESPONSE.ACK),
+			data: response.startsWith(DEVICE_RESPONSE.ACK)
+				? path
+				: `Playing file failed. Error returned from the device: ${response}`,
 		};
 	}
 
@@ -325,7 +346,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 				connect,
 				protocol: {
 					connected: protocolInfo ? { info: protocolInfo } : null,
-					commands: { info, push, ls, rm, mv },
+					commands: { info, push, ls, rm, mv, play },
 				},
 			}}
 		>
