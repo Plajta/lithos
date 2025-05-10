@@ -11,6 +11,12 @@ const DEVICE_RESPONSE = {
 
 type ProtocolType = "bootloader" | "sisyphus";
 
+interface FileSystemItem {
+	name: string;
+	type: "folder" | "directory";
+	size: number | null;
+}
+
 interface CommandResponse {
 	info: {
 		type: ProtocolType;
@@ -27,6 +33,7 @@ interface CommandResponse {
 		filePath: string;
 		bytesWritten: number;
 	};
+	ls: FileSystemItem[];
 }
 
 function crc32(buf: Uint8Array) {
@@ -48,6 +55,7 @@ function crc32(buf: Uint8Array) {
 const COMMANDS = {
 	INFO: "info",
 	PUSH: "push",
+	LS: "ls",
 };
 
 type Response<T> = Promise<{ success: boolean; data: T | string }>;
@@ -59,6 +67,7 @@ interface ProtocolContextType {
 		commands: {
 			info: () => Response<CommandResponse["info"]>;
 			push: (fileBlob: Blob, dest: string) => Response<CommandResponse["push"]>;
+			ls: () => any;
 		};
 	};
 }
@@ -92,7 +101,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		(async () => await refreshInfo())();
 	}, [writer, reader]);
 
-	async function readLine(): Promise<string | null> {
+	async function readLine(waitForEot = false): Promise<string | null> {
 		if (!reader) return null;
 
 		let line = "";
@@ -103,9 +112,14 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			if (done) break;
 			if (value && value.byteLength > 0) {
 				line += decoder.decode(value, { stream: true });
-				if (line.includes("\n")) break;
+				if (line.includes(waitForEot ? String.fromCharCode(EOT) : "\n")) break;
 			}
 		}
+
+		if (waitForEot) {
+			line = line.replace(String.fromCharCode(EOT), "");
+		}
+
 		return line.trim();
 	}
 
@@ -217,13 +231,49 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		};
 	}
 
+	async function ls(): Response<CommandResponse["ls"]> {
+		await sendCommand(COMMANDS.LS);
+
+		const data = await readLine(true);
+
+		if (!data) {
+			return {
+				success: false,
+				data: "Device returned unxpected response. Ls failed.",
+			};
+		}
+
+		const items: FileSystemItem[] = [];
+
+		const lines = data.split("\n");
+
+		for (const line of lines) {
+			const parts = line.split(" ");
+
+			// ukazatele current & parent slozek - asi pak rozlisovat i slozky??
+			if (parts.length === 2) {
+				continue;
+			}
+
+			const [itemName, itemType, itemSize] = parts;
+
+			items.push({
+				name: itemName,
+				type: itemType === "f" ? "folder" : "directory",
+				size: itemSize ? +itemSize : null,
+			});
+		}
+
+		return { success: true, data: items };
+	}
+
 	return (
 		<ProtocolContext.Provider
 			value={{
 				connect,
 				protocol: {
 					connected: protocolInfo ? { info: protocolInfo } : null,
-					commands: { info, push },
+					commands: { info, push, ls },
 				},
 			}}
 		>
