@@ -15,6 +15,11 @@ export function ConfigurationActions() {
 
 	const progressStep = useMemo(() => (configuration ? 100 / configuration.buttons.length : null), [configuration]);
 
+	const uploadInProgress = useMemo(
+		() => (configuration && progressStep && leftToUpload ? true : false),
+		[configuration, progressStep, leftToUpload]
+	);
+
 	const uploadAudioFiles = async () => {
 		if (configuration) {
 			for (const [index, button] of Object.entries(configuration.buttons)) {
@@ -24,6 +29,10 @@ export function ConfigurationActions() {
 
 				if (response.success) {
 					const leftStepCount = configuration.buttons.length - +index - 1;
+
+					if (leftStepCount === 0) {
+						toast.success("Konfigurace byla úspěšně nahrána!");
+					}
 
 					setLeftToUpload(leftStepCount === 0 ? null : leftStepCount);
 				} else {
@@ -40,15 +49,15 @@ export function ConfigurationActions() {
 				Uložit konfiguraci
 			</Button>
 
-			<div className="flex flex-col ">
-				<Button variant="outline" onClick={async () => await uploadAudioFiles()}>
-					Nahrát konfiguraci
-				</Button>
+			<Button variant="outline" disabled={uploadInProgress} onClick={async () => await uploadAudioFiles()}>
+				<div className="flex flex-col">
+					<p>Nahrát konfiguraci</p>
 
-				{configuration && progressStep && leftToUpload && (
-					<Progress value={100 - progressStep * leftToUpload} />
-				)}
-			</div>
+					{uploadInProgress && (
+						<Progress className="rounded-sm h-1" value={100 - progressStep! * leftToUpload!} />
+					)}
+				</div>
+			</Button>
 		</div>
 	);
 }
