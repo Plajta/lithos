@@ -35,6 +35,7 @@ interface CommandResponse {
 	};
 	ls: FileSystemItem[];
 	rm: string;
+	mv: string;
 }
 
 function crc32(buf: Uint8Array) {
@@ -58,6 +59,7 @@ const COMMANDS = {
 	PUSH: "push",
 	LS: "ls",
 	RM: "rm",
+	MV: "mv",
 };
 
 type Response<T> = Promise<{ success: boolean; data: T | string }>;
@@ -71,6 +73,7 @@ interface ProtocolContextType {
 			push: (fileBlob: Blob, dest: string) => Response<CommandResponse["push"]>;
 			ls: () => Response<CommandResponse["ls"]>;
 			rm: (path: string) => Response<CommandResponse["rm"]>;
+			mv: (path: string, dest: string) => Response<CommandResponse["mv"]>;
 		};
 	};
 }
@@ -294,13 +297,35 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		};
 	}
 
+	async function mv(source: string, dest: string) {
+		await sendCommand(`${COMMANDS.MV} ${source} ${dest}`);
+
+		const response = await readLine();
+
+		if (!response) {
+			return {
+				success: false,
+				data: "Device returned unxpected response. Mv failed.",
+			};
+		}
+
+		await refreshInfo();
+
+		return {
+			success: response.startsWith(DEVICE_RESPONSE.ACK),
+			data: response.startsWith(DEVICE_RESPONSE.ACK)
+				? dest
+				: `Removing data from device failed. Error returned from the device: ${response}`,
+		};
+	}
+
 	return (
 		<ProtocolContext.Provider
 			value={{
 				connect,
 				protocol: {
 					connected: protocolInfo ? { info: protocolInfo } : null,
-					commands: { info, push, ls, rm },
+					commands: { info, push, ls, rm, mv },
 				},
 			}}
 		>

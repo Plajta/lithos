@@ -22,6 +22,10 @@ export function DeveloperMenu() {
 		dest: null,
 	});
 	const [rmArguments, setRmArguments] = useState<string | null>(null);
+	const [mvArguemnts, setMvArguments] = useState<{ path: string | null; dest: string | null }>({
+		path: null,
+		dest: null,
+	});
 
 	const { connect, protocol } = useProtocol();
 
@@ -193,7 +197,7 @@ export function DeveloperMenu() {
 
 											setOutput((prev) => [
 												...prev,
-												{ command: "RM", line: JSON.stringify(response.data) },
+												{ command: "MV", line: JSON.stringify(response.data) },
 											]);
 										}}
 									>
@@ -208,6 +212,44 @@ export function DeveloperMenu() {
 									/>
 
 									<div className="col-span-1"></div>
+
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={async () => {
+											if (!mvArguemnts.path || !mvArguemnts.dest) {
+												toast.error("Požadované argumenty nejsou vyplňěny!");
+
+												return;
+											}
+
+											const response = await protocol.commands.mv(
+												mvArguemnts.path,
+												mvArguemnts.dest
+											);
+
+											setOutput((prev) => [
+												...prev,
+												{ command: "MV", line: JSON.stringify(response.data) },
+											]);
+										}}
+									>
+										mv
+									</Button>
+
+									<Input
+										type="text"
+										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
+										placeholder="file path"
+										onChange={(e) => setMvArguments((prev) => ({ ...prev, path: e.target.value }))}
+									/>
+
+									<Input
+										type="text"
+										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
+										placeholder="file dest"
+										onChange={(e) => setMvArguments((prev) => ({ ...prev, dest: e.target.value }))}
+									/>
 								</div>
 
 								<div className="grow flex flex-col text-sm gap-2">
