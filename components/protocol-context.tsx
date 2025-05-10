@@ -105,12 +105,12 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		if (!reader) return null;
 
 		let line = "";
-		const buffer = new Uint8Array(CHUNK_SIZE);
 
 		while (true) {
+			const buffer = new Uint8Array(CHUNK_SIZE);
 			const { value, done } = await reader.read(buffer);
 			if (done) break;
-			if (value) {
+			if (value && value.byteLength > 0) {
 				line += decoder.decode(value, { stream: true });
 				if (line.includes("\n")) break;
 			}
