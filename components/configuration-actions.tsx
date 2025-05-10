@@ -10,7 +10,7 @@ import { Progress } from "~/components/ui/progress";
 export function ConfigurationActions() {
 	const [leftToUpload, setLeftToUpload] = useState<number | null>(null);
 
-	const { configuration } = useConfigurationStore();
+	const { configuration, getColorLookupTable } = useConfigurationStore();
 	const { protocol } = useProtocol();
 
 	const progressStep = useMemo(() => (configuration ? 100 / configuration.buttons.length : null), [configuration]);
@@ -22,6 +22,17 @@ export function ConfigurationActions() {
 
 	const uploadAudioFiles = async () => {
 		if (configuration) {
+			{
+				const colorLookupTable = getColorLookupTable();
+
+				const response = await protocol.commands.push(new Blob([colorLookupTable]), "color_lookup_table");
+
+				if (!response.success) {
+					toast.error(response.data as string);
+					return;
+				}
+			}
+
 			for (const [index, button] of Object.entries(configuration.buttons)) {
 				const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
 

@@ -1,6 +1,12 @@
 import JSZip from "jszip";
 import { create } from "zustand";
 
+export const COLOR_LOOKUP_TABLE = {
+	RED: "ff0000",
+	GREEN: "00ff00",
+	BLUE: "0000ff",
+} as const;
+
 interface Configuration {
 	name: string;
 	colorCode: string;
@@ -23,6 +29,7 @@ interface Manifest {
 interface ConfigurationState {
 	configuration: Configuration | null;
 	loadConfiguration: (file: File) => Promise<void>;
+	getColorLookupTable: () => string;
 }
 
 export const useConfigurationStore = create<ConfigurationState>()((set) => ({
@@ -72,5 +79,14 @@ export const useConfigurationStore = create<ConfigurationState>()((set) => ({
 				buttons,
 			},
 		}));
+	},
+	getColorLookupTable: () => {
+		let result = "";
+
+		for (const [key, value] of Object.entries(COLOR_LOOKUP_TABLE)) {
+			result += `${value} ${key.toLocaleLowerCase()}\n`;
+		}
+
+		return result;
 	},
 }));
