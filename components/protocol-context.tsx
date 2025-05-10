@@ -89,16 +89,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	useEffect(() => {
-		async function readInfo() {
-			if (writer && reader) {
-				const response = await info();
-
-				if (response.success) {
-					setProtocolInfo(response.data as CommandResponse["info"]);
-				}
-			}
-		}
-		readInfo();
+		(async () => await refreshInfo())();
 	}, [writer, reader]);
 
 	async function readLine(): Promise<string | null> {
@@ -123,6 +114,16 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		const text = typeof cmd === "string" ? cmd : new TextDecoder().decode(cmd);
 		const encoded = encoder.encode(text + String.fromCharCode(EOT));
 		await writer.write(encoded);
+	}
+
+	async function refreshInfo() {
+		if (writer && reader) {
+			const response = await info();
+
+			if (response.success) {
+				setProtocolInfo(response.data as CommandResponse["info"]);
+			}
+		}
 	}
 
 	async function info(): Response<CommandResponse["info"]> {
@@ -204,6 +205,8 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 				data: `Writing data to device failed. Error returned from the device: ${finalResponse}`,
 			};
 		}
+
+		await refreshInfo();
 
 		return {
 			success: true,
