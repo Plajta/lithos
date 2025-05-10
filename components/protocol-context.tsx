@@ -188,13 +188,15 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		let sent = 0;
 
 		while (sent < size) {
-			const resp = await readLine();
+			const response = await readLine();
 
-			if (resp) {
-				if (!resp.startsWith(DEVICE_RESPONSE.ACK)) {
+			if (response) {
+				if (!response.startsWith(DEVICE_RESPONSE.ACK)) {
+					console.log(response);
+
 					return {
 						success: false,
-						data: "Device returned unxpected response. Push failed.",
+						data: `Device returned unxpected response. Error returned from the device: ${response}`,
 					};
 				}
 
