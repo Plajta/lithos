@@ -1,6 +1,7 @@
 "use client";
 
 import { AppSidebar } from "~/components/app-sidebar";
+import { DeveloperMenu } from "~/components/developer-menu";
 
 import { PageBreadcrumb } from "~/components/page-breadcrumb";
 import { ProtocolProvider } from "~/components/protocol-context";
@@ -21,6 +22,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 						</div>
 					</header>
 					{children}
+					<DeveloperMenu />
 				</SidebarInset>
 			</SidebarProvider>
 		</ProtocolProvider>

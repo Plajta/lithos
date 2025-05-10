@@ -56,7 +56,7 @@ export function ConfigurationActions() {
 
 	return (
 		<div className="flex gap-2">
-			<Button variant="outline" onClick={() => console.log("uložit")}>
+			<Button variant="outline" onClick={async () => console.log(await protocol.commands.ls())}>
 				Uložit konfiguraci
 			</Button>
 
