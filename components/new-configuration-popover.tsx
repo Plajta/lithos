@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PopoverClose } from "@radix-ui/react-popover";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -20,6 +20,8 @@ const FormSchema = z.object({
 });
 
 export function NewConfigurationPopover() {
+	const [popoverOpen, setPopoverOpen] = useState<boolean>(false);
+
 	const { createConfiguration } = useConfigurationStore();
 
 	const form = useForm<z.infer<typeof FormSchema>>({
@@ -31,10 +33,14 @@ export function NewConfigurationPopover() {
 
 	function onSubmit(data: z.infer<typeof FormSchema>) {
 		createConfiguration(data);
+
+		form.reset();
+
+		setPopoverOpen(false);
 	}
 
 	return (
-		<Popover>
+		<Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
 			<PopoverTrigger asChild>
 				<Button variant="outline">Nová Konfigurace</Button>
 			</PopoverTrigger>
@@ -115,9 +121,7 @@ export function NewConfigurationPopover() {
 						/>
 
 						<div className="flex justify-end">
-							<PopoverClose asChild>
-								<Button type="submit">Vytvořit</Button>
-							</PopoverClose>
+							<Button type="submit">Vytvořit</Button>
 						</div>
 					</form>
 				</Form>
