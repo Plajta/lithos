@@ -1,13 +1,16 @@
 import React, { useState, useRef } from "react";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
+import { useConfigurationStore } from "~/store/useConfigurationStore";
 
-export function VoiceRecorder() {
+export function VoiceRecorder({ index }: { index: number }) {
 	const [isRecording, setIsRecording] = useState<boolean>(false);
 	const [audioURL, setAudioURL] = useState<string | null>(null);
 	const mediaRecorder = useRef<MediaRecorder | null>(null);
 	const audioChunks = useRef<Blob[]>([]);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+	const { uploadButtonAudio } = useConfigurationStore();
 
 	const startRecording = async () => {
 		try {
@@ -47,14 +50,28 @@ export function VoiceRecorder() {
 		}
 	};
 
+	const finishRecording = async () => {
+		if (!audioURL) {
+			return;
+		}
+
+		const blob = await fetch(audioURL).then((r) => r.blob());
+
+		uploadButtonAudio(index, blob);
+	};
+
 	return (
 		<div className="flex gap-2 items-center h-10">
 			<Button
 				type="button"
 				variant={isRecording ? "destructive" : "outline"}
-				onClick={isRecording ? stopRecording : startRecording}
+				onClick={isRecording ? stopRecording : !isRecording && audioURL ? finishRecording : startRecording}
 			>
-				{isRecording ? "Zastavit Nahrávání" : "Začít Nahrávat"}
+				{isRecording
+					? "Zastavit Nahrávání"
+					: !isRecording && audioURL
+					? "Dokončit Nahrávání"
+					: "Začít Nahrávat"}
 			</Button>
 
 			{audioURL && !isRecording && <audio className="h-10" controls src={audioURL} />}
@@ -66,7 +83,19 @@ export function VoiceRecorder() {
 			<Button asChild variant="outline">
 				<label htmlFor="picture">
 					Nahrát soubor
-					<input id="picture" name="image" type="file" accept="voice/wav" hidden />
+					<input
+						id="picture"
+						name="image"
+						type="file"
+						accept="voice/wav"
+						hidden
+						onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+							const file = event.target.files?.[0];
+							if (!file) return;
+
+							uploadButtonAudio(index, file);
+						}}
+					/>
 				</label>
 			</Button>
 		</div>

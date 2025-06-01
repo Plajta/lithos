@@ -60,7 +60,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { b
 							/>
 
 							<div className="flex gap-1">
-								<VoiceButton source={audioUrl} />
+								<VoiceButton index={index} source={audioUrl} />
 							</div>
 						</div>
 					</div>

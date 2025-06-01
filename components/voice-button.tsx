@@ -5,10 +5,11 @@ import { Popover, PopoverTrigger, PopoverContent } from "~/components/ui/popover
 import { VoiceRecorder } from "~/components/voice-recorder";
 
 interface VoiceButtonProps {
+	index: number;
 	source: string | null;
 }
 
-export function VoiceButton({ source }: VoiceButtonProps) {
+export function VoiceButton({ index, source }: VoiceButtonProps) {
 	const [isPlaying, setIsPlaying] = useState(false);
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -38,7 +39,7 @@ export function VoiceButton({ source }: VoiceButtonProps) {
 					</PopoverTrigger>
 
 					<PopoverContent className="p-2 w-[--radix-popover-trigger-width]">
-						<VoiceRecorder />
+						<VoiceRecorder index={index} />
 					</PopoverContent>
 				</Popover>
 			)}
