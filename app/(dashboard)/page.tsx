@@ -10,7 +10,7 @@ export default function Page() {
 		<div className="flex flex-1 flex-col gap-4 px-4 pb-0">
 			<div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
 				{configuration.buttons.map((item, index) => (
-					<ButtonCard key={`configuration-buttonCard-${index}`} button={item} />
+					<ButtonCard key={`configuration-buttonCard-${index}`} button={item} index={index} />
 				))}
 			</div>
 		</div>

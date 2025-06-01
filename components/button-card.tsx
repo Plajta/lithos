@@ -3,12 +3,14 @@ import { Card, CardHeader, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
 import { VoiceButton } from "~/components/voice-button";
-import { Button as ButtonType } from "~/store/useConfigurationStore";
+import { Button as ButtonType, useConfigurationStore } from "~/store/useConfigurationStore";
 
-export function ButtonCard({ button: { label, imageUrl, audioUrl } }: { button: ButtonType }) {
+export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { button: ButtonType; index: number }) {
+	const { uploadButtonImage } = useConfigurationStore();
+
 	return (
 		<Card className="h-[280px] p-0 gap-0 justify-between">
-			<CardHeader className="flex-1 flex flex-col justify-center p-0">
+			<CardHeader className="flex-1 flex flex-col items-center justify-center p-0">
 				{imageUrl ? (
 					<img width={150} height={100} src={imageUrl} />
 				) : (
@@ -28,7 +30,18 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl } }: { button: 
 							</div>
 						</div>
 
-						<input id="dropzone-file" accept="image/png" type="file" className="hidden" />
+						<input
+							id="dropzone-file"
+							accept="image/png"
+							type="file"
+							className="hidden"
+							onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+								const file = event.target.files?.[0];
+								if (!file) return;
+
+								uploadButtonImage(index, file);
+							}}
+						/>
 					</label>
 				)}
 			</CardHeader>
