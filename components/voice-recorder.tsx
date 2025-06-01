@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
+import { Separator } from "~/components/ui/separator";
 
 export function VoiceRecorder() {
 	const [isRecording, setIsRecording] = useState<boolean>(false);
@@ -50,20 +50,27 @@ export function VoiceRecorder() {
 	};
 
 	return (
-		<div className="flex gap-4 items-center h-10">
+		<div className="flex gap-2 items-center h-10">
 			<Button
 				type="button"
-				className={`${isRecording ? "bg-red-600 hover:bg-red-500" : ""} text-white`}
+				variant={isRecording ? "destructive" : "outline"}
 				onClick={isRecording ? stopRecording : startRecording}
 			>
 				{isRecording ? "Zastavit Nahrávání" : "Začít Nahrávat"}
 			</Button>
 
-			{audioURL && !isRecording && <audio controls src={audioURL} />}
+			{audioURL && !isRecording && <audio className="h-10" controls src={audioURL} />}
 
 			<input ref={fileInputRef} type="file" name="voice" style={{ display: "none" }} />
 
-			{!audioURL && !isRecording && <Input id="picture" name="image" type="file" accept="voice/wav" />}
+			<Separator orientation="vertical" />
+
+			<Button asChild variant="outline">
+				<label htmlFor="picture">
+					Nahrát soubor
+					<input id="picture" name="image" type="file" accept="voice/wav" hidden />
+				</label>
+			</Button>
 		</div>
 	);
 }
