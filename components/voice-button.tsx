@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 
 interface VoiceButtonProps {
-	source?: string;
+	source: string | null;
 }
 
 export function VoiceButton({ source }: VoiceButtonProps) {
@@ -29,7 +29,7 @@ export function VoiceButton({ source }: VoiceButtonProps) {
 				{isPlaying ? <Loader2 className="animate-spin" /> : <Volume2 />}
 			</Button>
 
-			<audio ref={audioRef} src={source} onEnded={handleAudioEnded} style={{ display: "none" }} />
+			{source && <audio ref={audioRef} src={source} onEnded={handleAudioEnded} style={{ display: "none" }} />}
 		</div>
 	);
 }

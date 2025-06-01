@@ -8,7 +8,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl } }: { button: 
 	return (
 		<Card style={{ height: 280 }}>
 			<CardHeader className="flex justify-center">
-				<div style={{ height: 150 }}>
+				<div className="h-[150px] flex flex-col justify-center">
 					{imageUrl ? <img width={150} height={100} src={imageUrl} /> : <p>Není nahrán obrázek</p>}
 				</div>
 			</CardHeader>
@@ -18,7 +18,11 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl } }: { button: 
 			<CardContent>
 				<div className="flex flex-col gap-4">
 					<div className="flex justify-between items-center">
-						<Input className="text-lg p-0 m-0" variant="ghost" defaultValue={label} />
+						<Input
+							className="text-lg p-0 m-0"
+							variant="ghost"
+							defaultValue={label ?? "Není zadán text tlačítka"}
+						/>
 
 						<div className="flex gap-1">
 							<VoiceButton source={audioUrl} />

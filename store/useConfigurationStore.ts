@@ -7,6 +7,10 @@ export const COLOR_LOOKUP_TABLE = {
 	BLUE: "0000ff",
 } as const;
 
+export const Colors = ["RED", "GREEN", "BLUE"] as const;
+
+export const ConfigurationTypes = ["sysiphus"] as const;
+
 interface Configuration {
 	name: string;
 	colorCode: string;
@@ -14,9 +18,9 @@ interface Configuration {
 }
 
 export interface Button {
-	label: string;
-	imageUrl: string;
-	audioUrl: string;
+	label: string | null;
+	imageUrl: string | null;
+	audioUrl: string | null;
 }
 
 interface Manifest {
@@ -28,12 +32,30 @@ interface Manifest {
 
 interface ConfigurationState {
 	configuration: Configuration | null;
+	createConfiguration: ({
+		name,
+		type,
+		colorCode,
+	}: {
+		name: string;
+		type: (typeof ConfigurationTypes)[number];
+		colorCode: (typeof Colors)[number];
+	}) => void;
 	loadConfiguration: (file: File) => Promise<void>;
 	getColorLookupTable: () => string;
 }
 
 export const useConfigurationStore = create<ConfigurationState>()((set) => ({
 	configuration: null,
+	createConfiguration: ({ name, type, colorCode }) => {
+		set(() => ({
+			configuration: {
+				name,
+				colorCode,
+				buttons: Array.from({ length: 9 }).map(() => ({ label: null, imageUrl: null, audioUrl: null })),
+			},
+		}));
+	},
 	loadConfiguration: async (file) => {
 		const zip = new JSZip();
 		const content = await file.arrayBuffer();
