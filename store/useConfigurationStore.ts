@@ -42,10 +42,11 @@ interface ConfigurationState {
 		colorCode: (typeof Colors)[number];
 	}) => void;
 	loadConfiguration: (file: File) => Promise<void>;
+	saveConfiguration: () => Promise<void>;
 	getColorLookupTable: () => string;
 }
 
-export const useConfigurationStore = create<ConfigurationState>()((set) => ({
+export const useConfigurationStore = create<ConfigurationState>()((set, get) => ({
 	configuration: null,
 	createConfiguration: ({ name, type, colorCode }) => {
 		set(() => ({
@@ -101,6 +102,50 @@ export const useConfigurationStore = create<ConfigurationState>()((set) => ({
 				buttons,
 			},
 		}));
+	},
+	saveConfiguration: async () => {
+		const zip = new JSZip();
+
+		const { configuration } = get();
+
+		if (!configuration) {
+			return;
+		}
+
+		const manifest = {
+			version: 1,
+			name: configuration.name,
+			colorCode: configuration.colorCode,
+			buttons: configuration.buttons.map(({ label }) => ({ label } as { label: string })),
+		} satisfies Manifest;
+
+		zip.file("manifest.json", JSON.stringify(manifest, null, 4));
+
+		for (const [index, button] of Object.entries(configuration.buttons)) {
+			if (!button.audioUrl || !button.imageUrl) {
+				continue;
+			}
+
+			const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
+			const imageUrl = await fetch(button.imageUrl).then((r) => r.blob());
+
+			zip.file(`audio/${index}.waw`, audioBlob);
+			zip.file(`images/${index}.png`, imageUrl);
+
+			const content = await zip.generateAsync({ type: "blob" });
+
+			const url = URL.createObjectURL(content);
+			const a = document.createElement("a");
+
+			a.href = url;
+			a.download = `${configuration.name}_lithos.zip`;
+			document.body.appendChild(a);
+
+			a.click();
+
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		}
 	},
 	getColorLookupTable: () => {
 		let result = "";
