@@ -34,6 +34,10 @@ export function ConfigurationActions() {
 			}
 
 			for (const [index, button] of Object.entries(configuration.buttons)) {
+				if (!button.audioUrl) {
+					continue;
+				}
+
 				const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
 
 				const response = await protocol.commands.push(audioBlob, `${configuration.colorCode}_${index}.wav`);
