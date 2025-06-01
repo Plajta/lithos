@@ -6,7 +6,7 @@ import { VoiceButton } from "~/components/voice-button";
 import { Button as ButtonType, useConfigurationStore } from "~/store/useConfigurationStore";
 
 export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { button: ButtonType; index: number }) {
-	const { uploadButtonImage } = useConfigurationStore();
+	const { uploadButtonImage, updateButtonLabel } = useConfigurationStore();
 
 	return (
 		<Card className="h-[280px] p-0 gap-0 justify-between">
@@ -56,6 +56,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { b
 								className="text-lg p-0 m-0"
 								variant="ghost"
 								defaultValue={label ?? "Není zadán text tlačítka"}
+								onChange={(e) => updateButtonLabel(index, e.target.value)}
 							/>
 
 							<div className="flex gap-1">

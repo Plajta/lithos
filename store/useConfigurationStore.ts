@@ -45,6 +45,7 @@ interface ConfigurationState {
 	saveConfiguration: () => Promise<void>;
 	getColorLookupTable: () => string;
 	uploadButtonImage: (index: number, image: Blob) => void;
+	updateButtonLabel: (index: number, label: string) => void;
 }
 
 export const useConfigurationStore = create<ConfigurationState>()((set, get) => ({
@@ -168,6 +169,25 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					buttons: currentConfig.buttons.map((button, buttonIndex) => {
 						if (buttonIndex === index) {
 							return { ...button, imageUrl: URL.createObjectURL(image) };
+						} else {
+							return button;
+						}
+					}),
+				},
+			};
+		});
+	},
+	updateButtonLabel: (index, label) => {
+		set((state) => {
+			const currentConfig = state.configuration!;
+
+			return {
+				configuration: {
+					name: currentConfig.name,
+					colorCode: currentConfig.colorCode,
+					buttons: currentConfig.buttons.map((button, buttonIndex) => {
+						if (buttonIndex === index) {
+							return { ...button, label };
 						} else {
 							return button;
 						}
