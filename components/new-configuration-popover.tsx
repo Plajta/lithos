@@ -41,7 +41,7 @@ export function NewConfigurationPopover() {
 
 			<PopoverContent side="right" align="start">
 				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2" autoComplete="off">
 						<FormField
 							control={form.control}
 							name="name"
