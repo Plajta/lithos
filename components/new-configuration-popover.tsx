@@ -22,7 +22,7 @@ const FormSchema = z.object({
 export function NewConfigurationPopover() {
 	const [popoverOpen, setPopoverOpen] = useState<boolean>(false);
 
-	const { createConfiguration } = useConfigurationStore();
+	const { createConfiguration, configuration } = useConfigurationStore();
 
 	const form = useForm<z.infer<typeof FormSchema>>({
 		resolver: zodResolver(FormSchema),
@@ -32,100 +32,102 @@ export function NewConfigurationPopover() {
 	});
 
 	function onSubmit(data: z.infer<typeof FormSchema>) {
-		createConfiguration(data);
-
 		form.reset();
 
 		setPopoverOpen(false);
+
+		createConfiguration(data);
 	}
 
 	return (
-		<Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-			<PopoverTrigger asChild>
-				<Button variant="outline">Nová Konfigurace</Button>
-			</PopoverTrigger>
+		!configuration && (
+			<Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+				<PopoverTrigger asChild>
+					<Button variant="outline">Nová Konfigurace</Button>
+				</PopoverTrigger>
 
-			<PopoverContent side="right" align="start">
-				<Form {...form}>
-					<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2" autoComplete="off">
-						<FormField
-							control={form.control}
-							name="name"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Jméno</FormLabel>
+				<PopoverContent side="right" align="start">
+					<Form {...form}>
+						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2" autoComplete="off">
+							<FormField
+								control={form.control}
+								name="name"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Jméno</FormLabel>
 
-									<FormControl>
-										<Input placeholder="cool jméno" {...field} />
-									</FormControl>
-
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						<FormField
-							control={form.control}
-							name="type"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Rozložení</FormLabel>
-
-									<Select onValueChange={field.onChange} defaultValue={field.value}>
 										<FormControl>
-											<SelectTrigger className="w-full">
-												<SelectValue placeholder="Vyber rožložení" />
-											</SelectTrigger>
+											<Input placeholder="cool jméno" {...field} />
 										</FormControl>
 
-										<SelectContent>
-											{ConfigurationTypes.map((type) => (
-												<SelectItem key={`configuration-${type}`} value={type}>
-													{type}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+							<FormField
+								control={form.control}
+								name="type"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Rozložení</FormLabel>
 
-						<FormField
-							control={form.control}
-							name="colorCode"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Barva</FormLabel>
+										<Select onValueChange={field.onChange} defaultValue={field.value}>
+											<FormControl>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Vyber rožložení" />
+												</SelectTrigger>
+											</FormControl>
 
-									<Select onValueChange={field.onChange} defaultValue={field.value}>
-										<FormControl>
-											<SelectTrigger className="w-full">
-												<SelectValue placeholder="Vyber barvu" />
-											</SelectTrigger>
-										</FormControl>
+											<SelectContent>
+												{ConfigurationTypes.map((type) => (
+													<SelectItem key={`configuration-${type}`} value={type}>
+														{type}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
 
-										<SelectContent>
-											{Colors.map((type) => (
-												<SelectItem key={`configuration-${type}`} value={type}>
-													{type}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
 
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+							<FormField
+								control={form.control}
+								name="colorCode"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Barva</FormLabel>
 
-						<div className="flex justify-end">
-							<Button type="submit">Vytvořit</Button>
-						</div>
-					</form>
-				</Form>
-			</PopoverContent>
-		</Popover>
+										<Select onValueChange={field.onChange} defaultValue={field.value}>
+											<FormControl>
+												<SelectTrigger className="w-full">
+													<SelectValue placeholder="Vyber barvu" />
+												</SelectTrigger>
+											</FormControl>
+
+											<SelectContent>
+												{Colors.map((type) => (
+													<SelectItem key={`configuration-${type}`} value={type}>
+														{type}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+
+							<div className="flex justify-end">
+								<Button type="submit">Vytvořit</Button>
+							</div>
+						</form>
+					</Form>
+				</PopoverContent>
+			</Popover>
+		)
 	);
 }
