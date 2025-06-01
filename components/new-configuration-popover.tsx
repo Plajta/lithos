@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { PopoverClose } from "@radix-ui/react-popover";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -114,7 +115,9 @@ export function NewConfigurationPopover() {
 						/>
 
 						<div className="flex justify-end">
-							<Button type="submit">Vytvořit</Button>
+							<PopoverClose asChild>
+								<Button type="submit">Vytvořit</Button>
+							</PopoverClose>
 						</div>
 					</form>
 				</Form>
