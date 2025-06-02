@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { toast } from "sonner";
 import { create } from "zustand";
 
 export const COLOR_LOOKUP_TABLE = {
@@ -65,12 +66,10 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		const content = await file.arrayBuffer();
 		const zipContent = await zip.loadAsync(content);
 
-		const basePath = file.name.split(".zip")[0];
-
 		const manifestFile = zipContent.file(`manifest.json`);
 
 		if (!manifestFile) {
-			console.log("Configuration is not valid!");
+			toast.error("Nelze načíst nahranou konfiguraci!");
 			return;
 		}
 
@@ -82,6 +81,11 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		const audio = zipContent
 			.filter((path) => path.startsWith(`audio`) && path.endsWith(".wav"))
 			.sort((a, b) => +a.name.split("/").pop()?.split(".")[0]! - +b.name.split("/").pop()?.split(".")[0]!);
+
+		if (images.length === 0 || audio.length === 0) {
+			toast.error("Nelze načíst nahranou konfiguraci!");
+			return;
+		}
 
 		const buttons: Button[] = [];
 
