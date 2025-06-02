@@ -67,7 +67,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 
 		const basePath = file.name.split(".zip")[0];
 
-		const manifestFile = zipContent.file(`${basePath}/manifest.json`);
+		const manifestFile = zipContent.file(`manifest.json`);
 
 		if (!manifestFile) {
 			console.log("Configuration is not valid!");
@@ -77,10 +77,10 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		const manifest = JSON.parse(await manifestFile.async("string")) as Manifest;
 
 		const images = zipContent
-			.filter((path) => path.startsWith(`${basePath}/images`) && path.endsWith(".png"))
+			.filter((path) => path.startsWith(`images`) && path.endsWith(".png"))
 			.sort((a, b) => +a.name.split("/").pop()?.split(".")[0]! - +b.name.split("/").pop()?.split(".")[0]!);
 		const audio = zipContent
-			.filter((path) => path.startsWith(`${basePath}/audio`) && path.endsWith(".wav"))
+			.filter((path) => path.startsWith(`audio`) && path.endsWith(".wav"))
 			.sort((a, b) => +a.name.split("/").pop()?.split(".")[0]! - +b.name.split("/").pop()?.split(".")[0]!);
 
 		const buttons: Button[] = [];
@@ -134,7 +134,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
 			const imageUrl = await fetch(button.imageUrl).then((r) => r.blob());
 
-			zip.file(`audio/${Number(index + 1)}.waw`, audioBlob);
+			zip.file(`audio/${Number(index + 1)}.wav`, audioBlob);
 			zip.file(`images/${Number(index + 1)}.png`, imageUrl);
 
 			const content = await zip.generateAsync({ type: "blob" });
