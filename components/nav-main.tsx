@@ -6,7 +6,6 @@ import { useParams, usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 
 import { CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
-import { Input } from "~/components/ui/input";
 
 import {
 	SidebarGroup,
