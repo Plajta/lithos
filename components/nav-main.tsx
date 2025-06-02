@@ -52,16 +52,23 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
 				<NewConfigurationPopover />
 
-				<Button asChild className="w-full" variant="outline">
-					<Input
-						type="file"
-						onChange={async (event: React.ChangeEvent<HTMLInputElement>) => {
-							const file = event.target.files?.[0];
-							if (!file) return;
+				<Button asChild variant="outline">
+					<label htmlFor="picture">
+						Nahrát Konfiguraci
+						<input
+							id="picture"
+							name="image"
+							type="file"
+							accept=".zip"
+							hidden
+							onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+								const file = event.target.files?.[0];
+								if (!file) return;
 
-							await loadConfiguration(file);
-						}}
-					/>
+								loadConfiguration(file);
+							}}
+						/>
+					</label>
 				</Button>
 			</div>
 
