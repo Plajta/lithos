@@ -109,8 +109,8 @@ export default function Page() {
 				color: rgb(0, 1, 0),
 			});
 
+			// nahore prava
 			if (DebugFrames) {
-				// nahore prava
 				page.drawRectangle({
 					x: offsetPoints(2 * (template.container.width / 3)),
 					y: offsetPoints(template.container.height - template.header.height / 2),
@@ -128,8 +128,9 @@ export default function Page() {
 				font: font,
 				color: rgb(0, 0, 0),
 			});
+
+			// dole leva + uprostred
 			if (DebugFrames) {
-				// dole leva + uprostred
 				page.drawRectangle({
 					x: offsetPoints(0),
 					y: offsetPoints(template.container.height - template.header.height),
@@ -148,8 +149,9 @@ export default function Page() {
 				color: rgb(0, 0, 0),
 				maxWidth: mmsToPoints(template.container.width / 3) + mmsToPoints(template.container.width / 3),
 			});
+
+			// dole prava
 			if (DebugFrames) {
-				// dole prava
 				page.drawRectangle({
 					x: offsetPoints(2 * (template.container.width / 3)),
 					y: offsetPoints(template.container.height - template.header.height),
