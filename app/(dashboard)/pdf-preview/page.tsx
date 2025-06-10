@@ -22,6 +22,27 @@ function offsetPoints(points: number) {
 	return mmsToPoints(points) + mmsToPoints(10);
 }
 
+function create2DArrayFromArray<T>(arr: T[], rows: number): T[][] {
+	const validLengths = [9, 12];
+
+	if (!validLengths.includes(arr.length)) {
+		throw new Error("Input array must contain exactly 9 or 12 elements.");
+	}
+
+	const elementsPerRow = 3;
+
+	if (arr.length / elementsPerRow !== rows) {
+		throw new Error(`The number of rows must be ${arr.length / elementsPerRow}.`);
+	}
+
+	const result: T[][] = [];
+	for (let i = 0; i < rows; i++) {
+		result.push(arr.slice(i * elementsPerRow, (i + 1) * elementsPerRow));
+	}
+
+	return result.reverse();
+}
+
 const DebugFrames = false;
 
 export default function Page() {
@@ -169,6 +190,30 @@ export default function Page() {
 				font: font,
 				color: rgb(0, 0, 0),
 			});
+
+			const button2DArray = create2DArrayFromArray(
+				Array.from({ length: 9 }, (_, index) => index),
+				3
+			);
+
+			for (const [rowIndex, row] of button2DArray.entries()) {
+				for (const [buttonIndex, button] of row.entries()) {
+					if (DebugFrames) {
+						page.drawRectangle({
+							x: offsetPoints(buttonIndex * (template.container.width / 3)),
+							y: offsetPoints(
+								template.container.height -
+									template.header.height -
+									((rowIndex + 1) * (template.container.height - template.header.height)) / 3
+							),
+							width: mmsToPoints(template.container.width / 3),
+							height: mmsToPoints((template.container.height - template.header.height) / 3),
+							borderWidth: 1,
+							borderColor: rgb(1, 0, 0),
+						});
+					}
+				}
+			}
 
 			const pdfBytes = await pdfDoc.save();
 			const blob = new Blob([pdfBytes], { type: "application/pdf" });
