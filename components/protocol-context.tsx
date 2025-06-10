@@ -94,7 +94,15 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 
 	async function connect() {
 		if ("serial" in navigator) {
-			const port = await navigator.serial.requestPort();
+			const port = await navigator.serial.requestPort({
+				filters: [
+					{
+						usbVendorId: 0xcafe,
+						usbProductId: 0x6942,
+					},
+				],
+			});
+
 			await port.open({ baudRate: 115200 });
 
 			const writer = port.writable!.getWriter();
