@@ -43,7 +43,7 @@ function create2DArrayFromArray<T>(arr: T[], rows: number): T[][] {
 	return result.reverse();
 }
 
-const DebugFrames = true;
+const DebugFrames = false;
 
 export default function Page() {
 	const [url, setUrl] = useState<string | null>(null);
@@ -229,6 +229,19 @@ export default function Page() {
 						});
 					}
 
+					page.drawText("Plajta-Lithos 2025", {
+						x: offsetPoints(buttonIndex * (template.container.width / 3)) + 4,
+						y:
+							offsetPoints(
+								template.container.height -
+									template.header.height -
+									((rowIndex + 1) * (template.container.height - template.header.height)) / 3
+							) + 9,
+						size: 15,
+						font: font,
+						color: rgb(0, 0, 0),
+					});
+
 					// obrazek
 					if (DebugFrames) {
 						page.drawRectangle({
@@ -246,6 +259,26 @@ export default function Page() {
 							color: rgb(0, 0, 1),
 						});
 					}
+
+					const imageBytes = await fetch(
+						"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTUu_lgWoPit_ogz4SEN2FA8p0SuC5D062_EQ&s"
+					).then((res) => res.arrayBuffer());
+
+					const image = await pdfDoc.embedJpg(imageBytes);
+
+					page.drawImage(image, {
+						x: offsetPoints(buttonIndex * (template.container.width / 3) + 1),
+						y: offsetPoints(
+							template.container.height -
+								template.header.height -
+								((rowIndex + 1) * (template.container.height - template.header.height)) / 3 +
+								10
+						),
+						width: mmsToPoints(template.container.width / 3 - 2),
+						height: mmsToPoints(
+							(template.container.height - template.header.height) / 3 - template.header.height / 2 - 1
+						),
+					});
 				}
 			}
 
