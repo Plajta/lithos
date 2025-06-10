@@ -43,7 +43,7 @@ function create2DArrayFromArray<T>(arr: T[], rows: number): T[][] {
 	return result.reverse();
 }
 
-const DebugFrames = false;
+const DebugFrames = true;
 
 export default function Page() {
 	const [url, setUrl] = useState<string | null>(null);
@@ -198,6 +198,7 @@ export default function Page() {
 
 			for (const [rowIndex, row] of button2DArray.entries()) {
 				for (const [buttonIndex, button] of row.entries()) {
+					// grid
 					if (DebugFrames) {
 						page.drawRectangle({
 							x: offsetPoints(buttonIndex * (template.container.width / 3)),
@@ -209,7 +210,40 @@ export default function Page() {
 							width: mmsToPoints(template.container.width / 3),
 							height: mmsToPoints((template.container.height - template.header.height) / 3),
 							borderWidth: 1,
-							borderColor: rgb(1, 0, 0),
+							borderColor: rgb(0, 0, 0),
+						});
+					}
+
+					// text
+					if (DebugFrames) {
+						page.drawRectangle({
+							x: offsetPoints(buttonIndex * (template.container.width / 3)),
+							y: offsetPoints(
+								template.container.height -
+									template.header.height -
+									((rowIndex + 1) * (template.container.height - template.header.height)) / 3
+							),
+							width: mmsToPoints(template.container.width / 3),
+							height: mmsToPoints(template.header.height / 2),
+							color: rgb(0, 1, 0),
+						});
+					}
+
+					// obrazek
+					if (DebugFrames) {
+						page.drawRectangle({
+							x: offsetPoints(buttonIndex * (template.container.width / 3)),
+							y: offsetPoints(
+								template.container.height -
+									template.header.height -
+									((rowIndex + 1) * (template.container.height - template.header.height)) / 3 +
+									10
+							),
+							width: mmsToPoints(template.container.width / 3),
+							height: mmsToPoints(
+								(template.container.height - template.header.height) / 3 - template.header.height / 2
+							),
+							color: rgb(0, 0, 1),
 						});
 					}
 				}
