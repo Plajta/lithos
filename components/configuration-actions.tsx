@@ -14,7 +14,8 @@ export function ConfigurationActions() {
 	const [bytesLeft, setBytesLeft] = useState<number>(0);
 	const [progressStep, setProgressStep] = useState<number>(0);
 
-	const { configuration, getColorLookupTable, saveConfiguration, generateConfigurationPdf } = useConfigurationStore();
+	const { configuration, getColorLookupTable, saveConfiguration, generateConfigurationPdf, loadConfiguration } =
+		useConfigurationStore();
 	const { protocol } = useProtocol();
 
 	const uploadInProgress = useMemo(
@@ -83,18 +84,36 @@ export function ConfigurationActions() {
 
 	return (
 		<div className="flex gap-2">
-			<Button variant="outline" onClick={async () => await saveConfiguration()}>
-				Uložit konfiguraci
+			<Button variant="outline" asChild>
+				<label htmlFor="load-configuration-file">
+					Nahrát kartu z disku
+					<input
+						id="load-configuration-file"
+						accept=".zip"
+						type="file"
+						className="hidden cursor-pointer"
+						onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+							const file = event.target.files?.[0];
+							if (!file) return;
+
+							loadConfiguration(file);
+						}}
+					/>
+				</label>
+			</Button>
+
+			<Button variant="outline" onClick={async () => await saveConfiguration()} disabled={!configuration}>
+				Uložit kartu na disk
 			</Button>
 
 			<Popover open={uploadInProgress}>
 				<PopoverAnchor>
 					<Button
 						variant="outline"
-						disabled={uploadInProgress}
+						disabled={uploadInProgress || !configuration}
 						onClick={async () => await uploadAudioFiles()}
 					>
-						<p>Nahrát konfiguraci</p>
+						<p>Nahrát kartu do zařízení</p>
 					</Button>
 				</PopoverAnchor>
 
@@ -107,7 +126,7 @@ export function ConfigurationActions() {
 				</PopoverContent>
 			</Popover>
 
-			<Button variant="outline" onClick={async () => await generateConfigurationPdf()}>
+			<Button variant="outline" onClick={async () => await generateConfigurationPdf()} disabled={!configuration}>
 				Uložit pdf
 			</Button>
 		</div>

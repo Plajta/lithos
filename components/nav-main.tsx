@@ -50,25 +50,6 @@ export function NavMain({ items }: { items: NavItem[] }) {
 				<ProtocolInfo />
 
 				<NewConfigurationPopover />
-
-				<Button asChild variant="outline">
-					<label htmlFor="picture">
-						Nahrát Konfiguraci
-						<input
-							id="picture"
-							name="image"
-							type="file"
-							accept=".zip"
-							hidden
-							onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-								const file = event.target.files?.[0];
-								if (!file) return;
-
-								loadConfiguration(file);
-							}}
-						/>
-					</label>
-				</Button>
 			</div>
 
 			{protocol.connected && (
