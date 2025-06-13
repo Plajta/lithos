@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
 
 const EOT = 0x04;
 const CHUNK_SIZE = 1024;
@@ -72,7 +72,11 @@ interface ProtocolContextType {
 		connected: { info: CommandResponse["info"] } | null;
 		commands: {
 			info: () => Response<CommandResponse["info"]>;
-			push: (fileBlob: Blob, dest: string) => Response<CommandResponse["push"]>;
+			push: (
+				fileBlob: Blob,
+				dest: string,
+				setBytesLeft?: Dispatch<SetStateAction<number>>
+			) => Response<CommandResponse["push"]>;
 			ls: () => Response<CommandResponse["ls"]>;
 			rm: (path: string) => Response<CommandResponse["rm"]>;
 			mv: (path: string, dest: string) => Response<CommandResponse["mv"]>;
@@ -188,7 +192,11 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		};
 	}
 
-	async function push(fileBlob: Blob, dest: string): Response<CommandResponse["push"]> {
+	async function push(
+		fileBlob: Blob,
+		dest: string,
+		setBytesLeft?: Dispatch<SetStateAction<number>>
+	): Response<CommandResponse["push"]> {
 		if (!writer) {
 			return {
 				success: false,
@@ -220,6 +228,10 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 				const chunk = buffer.slice(sent, sent + CHUNK_SIZE);
 				await writer.write(chunk);
 				sent += chunk.length;
+
+				if (setBytesLeft) {
+					setBytesLeft((prev) => prev - chunk.length);
+				}
 			}
 		}
 

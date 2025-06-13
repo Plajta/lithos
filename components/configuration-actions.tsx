@@ -6,18 +6,25 @@ import { useConfigurationStore } from "~/store/useConfigurationStore";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Progress } from "~/components/ui/progress";
+import { Popover, PopoverContent, PopoverAnchor } from "~/components/ui/popover";
 
 export function ConfigurationActions() {
 	const [leftToUpload, setLeftToUpload] = useState<number | null>(null);
 
+	const [bytesLeft, setBytesLeft] = useState<number>(0);
+	const [progressStep, setProgressStep] = useState<number>(0);
+
 	const { configuration, getColorLookupTable, saveConfiguration, generateConfigurationPdf } = useConfigurationStore();
 	const { protocol } = useProtocol();
-
-	const progressStep = useMemo(() => (configuration ? 100 / configuration.buttons.length : null), [configuration]);
 
 	const uploadInProgress = useMemo(
 		() => (configuration && progressStep && leftToUpload ? true : false),
 		[configuration, progressStep, leftToUpload]
+	);
+
+	const totalItemsToUpload = useMemo(
+		() => (configuration ? configuration.buttons.filter((button) => !!button.audioUrl).length : 0),
+		[configuration]
 	);
 
 	const uploadAudioFiles = async () => {
@@ -33,6 +40,12 @@ export function ConfigurationActions() {
 				}
 			}
 
+			if (configuration.buttons.length === 0) {
+				return;
+			}
+
+			setLeftToUpload(totalItemsToUpload);
+
 			for (const [index, button] of Object.entries(configuration.buttons)) {
 				if (!button.audioUrl) {
 					continue;
@@ -40,10 +53,20 @@ export function ConfigurationActions() {
 
 				const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
 
-				const response = await protocol.commands.push(audioBlob, `${configuration.colorCode}_${index}.wav`);
+				setBytesLeft(audioBlob.size);
+				setProgressStep(100 / audioBlob.size);
+
+				const response = await protocol.commands.push(
+					audioBlob,
+					`${configuration.colorCode}_${index}.wav`,
+					setBytesLeft
+				);
 
 				if (response.success) {
 					const leftStepCount = configuration.buttons.length - +index - 1;
+
+					setBytesLeft(0);
+					setProgressStep(0);
 
 					if (leftStepCount === 0) {
 						toast.success("Konfigurace byla úspěšně nahrána!");
@@ -64,15 +87,25 @@ export function ConfigurationActions() {
 				Uložit konfiguraci
 			</Button>
 
-			<Button variant="outline" disabled={uploadInProgress} onClick={async () => await uploadAudioFiles()}>
-				<div className="flex flex-col">
-					<p>Nahrát konfiguraci</p>
+			<Popover open={uploadInProgress}>
+				<PopoverAnchor>
+					<Button
+						variant="outline"
+						disabled={uploadInProgress}
+						onClick={async () => await uploadAudioFiles()}
+					>
+						<p>Nahrát konfiguraci</p>
+					</Button>
+				</PopoverAnchor>
 
-					{uploadInProgress && (
-						<Progress className="rounded-sm h-1" value={100 - progressStep! * leftToUpload!} />
-					)}
-				</div>
-			</Button>
+				<PopoverContent className="p-2 w-[250px] flex flex-col justify-between items-center gap-1">
+					<p className="text-xs text-muted-foreground">
+						{leftToUpload ?? 0} / {totalItemsToUpload}
+					</p>
+
+					<Progress className="rounded-sm h-1" value={100 - progressStep! * bytesLeft!} />
+				</PopoverContent>
+			</Popover>
 
 			<Button variant="outline" onClick={async () => await generateConfigurationPdf()}>
 				Uložit pdf
