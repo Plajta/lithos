@@ -18,7 +18,6 @@ import {
 	SidebarMenuSubItem,
 } from "~/components/ui/sidebar";
 import { useProtocol } from "~/components/protocol-context";
-import { useConfigurationStore } from "~/store/useConfigurationStore";
 import { ProtocolInfo } from "~/components/protocol-info";
 
 export interface NavItem {
@@ -32,8 +31,6 @@ export interface NavItem {
 export function NavMain({ items }: { items: NavItem[] }) {
 	const pathname = usePathname();
 	const params = useParams();
-
-	const { loadConfiguration } = useConfigurationStore();
 
 	const { connect, protocol } = useProtocol();
 
