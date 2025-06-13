@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Progress } from "~/components/ui/progress";
 import { Popover, PopoverContent, PopoverAnchor } from "~/components/ui/popover";
+import { NewConfigurationPopover } from "~/components/new-configuration-popover";
 
 export function ConfigurationActions() {
 	const [leftToUpload, setLeftToUpload] = useState<number | null>(null);
@@ -84,6 +85,8 @@ export function ConfigurationActions() {
 
 	return (
 		<div className="flex gap-2">
+			<NewConfigurationPopover />
+
 			<Button variant="outline" asChild>
 				<label htmlFor="load-configuration-file">
 					Nahrát kartu z disku

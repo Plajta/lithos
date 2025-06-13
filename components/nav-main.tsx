@@ -20,7 +20,6 @@ import {
 import { useProtocol } from "~/components/protocol-context";
 import { useConfigurationStore } from "~/store/useConfigurationStore";
 import { ProtocolInfo } from "~/components/protocol-info";
-import { NewConfigurationPopover } from "~/components/new-configuration-popover";
 
 export interface NavItem {
 	title: string;
@@ -48,8 +47,6 @@ export function NavMain({ items }: { items: NavItem[] }) {
 				)}
 
 				<ProtocolInfo />
-
-				<NewConfigurationPopover />
 			</div>
 
 			{protocol.connected && (

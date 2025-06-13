@@ -43,10 +43,10 @@ export function NewConfigurationPopover() {
 		!configuration && (
 			<Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
 				<PopoverTrigger asChild>
-					<Button variant="outline">Nová Konfigurace</Button>
+					<Button variant="outline">Nová karta</Button>
 				</PopoverTrigger>
 
-				<PopoverContent side="right" align="start">
+				<PopoverContent side="bottom" align="start">
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2" autoComplete="off">
 							<FormField
