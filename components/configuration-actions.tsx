@@ -10,7 +10,7 @@ import { Progress } from "~/components/ui/progress";
 export function ConfigurationActions() {
 	const [leftToUpload, setLeftToUpload] = useState<number | null>(null);
 
-	const { configuration, getColorLookupTable, saveConfiguration } = useConfigurationStore();
+	const { configuration, getColorLookupTable, saveConfiguration, generateConfigurationPdf } = useConfigurationStore();
 	const { protocol } = useProtocol();
 
 	const progressStep = useMemo(() => (configuration ? 100 / configuration.buttons.length : null), [configuration]);
@@ -72,6 +72,10 @@ export function ConfigurationActions() {
 						<Progress className="rounded-sm h-1" value={100 - progressStep! * leftToUpload!} />
 					)}
 				</div>
+			</Button>
+
+			<Button variant="outline" onClick={async () => await generateConfigurationPdf()}>
+				Uložit pdf
 			</Button>
 		</div>
 	);

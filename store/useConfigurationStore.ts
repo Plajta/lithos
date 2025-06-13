@@ -12,7 +12,7 @@ export const Colors = ["RED", "GREEN", "BLUE"] as const;
 
 export const ConfigurationTypes = ["sysiphus"] as const;
 
-interface Configuration {
+export interface Configuration {
 	name: string;
 	colorCode: string;
 	buttons: Button[];
@@ -46,7 +46,7 @@ interface ConfigurationState {
 	saveConfiguration: () => Promise<void>;
 	getColorLookupTable: () => string;
 	uploadButtonImage: (index: number, image: Blob) => void;
-	uploadButtonAudio: (index: number, voice: Blob) => void;
+	uploadButtonAudio: (index: number, voice: Blob) => Promise<void>;
 	updateButtonLabel: (index: number, label: string) => void;
 }
 
@@ -166,42 +166,110 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		return result;
 	},
 	uploadButtonImage: (index, image) => {
-		set((state) => {
-			const currentConfig = state.configuration!;
+		const img = new Image();
+		img.onload = () => {
+			const canvas = document.createElement("canvas");
+			canvas.width = img.naturalWidth;
+			canvas.height = img.naturalHeight;
 
-			return {
+			const ctx = canvas.getContext("2d");
+
+			if (!ctx) {
+				throw new Error("ss");
+			}
+
+			ctx.drawImage(img, 0, 0);
+
+			set((state) => ({
 				configuration: {
-					name: currentConfig.name,
-					colorCode: currentConfig.colorCode,
-					buttons: currentConfig.buttons.map((button, buttonIndex) => {
+					name: state.configuration!.name,
+					colorCode: state.configuration!.colorCode,
+					buttons: state.configuration!.buttons.map((button, buttonIndex) => {
 						if (buttonIndex === index) {
-							return { ...button, imageUrl: URL.createObjectURL(image) };
+							return { ...button, imageUrl: canvas.toDataURL("image/png") };
 						} else {
 							return button;
 						}
 					}),
 				},
-			};
-		});
+			}));
+		};
+
+		img.src = URL.createObjectURL(image);
 	},
-	uploadButtonAudio: (index, audio) => {
-		set((state) => {
-			const currentConfig = state.configuration!;
+	uploadButtonAudio: async (index, audio) => {
+		const { configuration } = get();
 
-			return {
+		if (!configuration) {
+			return;
+		}
+
+		try {
+			const arrayBuffer = await audio.arrayBuffer();
+			const audioCtx = new AudioContext();
+			const decoded = await audioCtx.decodeAudioData(arrayBuffer);
+
+			const sampleRate = 44100;
+			const offlineCtx = new OfflineAudioContext(1, decoded.duration * sampleRate, sampleRate);
+			const source = offlineCtx.createBufferSource();
+			source.buffer = decoded;
+			source.connect(offlineCtx.destination);
+			source.start(0);
+
+			const rendered = await offlineCtx.startRendering();
+			const samples = rendered.getChannelData(0);
+			const numSamples = rendered.length;
+			const wavData = new ArrayBuffer(44 + numSamples * 2);
+			const view = new DataView(wavData);
+
+			const writeStr = (offset: number, str: string) => {
+				for (let i = 0; i < str.length; i++) {
+					view.setUint8(offset + i, str.charCodeAt(i));
+				}
+			};
+
+			// Write WAV header
+			writeStr(0, "RIFF");
+			view.setUint32(4, 36 + numSamples * 2, true);
+			writeStr(8, "WAVE");
+			writeStr(12, "fmt ");
+			view.setUint32(16, 16, true); // Subchunk1Size
+			view.setUint16(20, 1, true); // AudioFormat (PCM)
+			view.setUint16(22, 1, true); // NumChannels (mono)
+			view.setUint32(24, sampleRate, true); // SampleRate
+			view.setUint32(28, sampleRate * 2, true); // ByteRate
+			view.setUint16(32, 2, true); // BlockAlign
+			view.setUint16(34, 16, true); // BitsPerSample
+			writeStr(36, "data");
+			view.setUint32(40, numSamples * 2, true); // Subchunk2Size
+
+			// Write 16-bit PCM samples
+			for (let i = 0; i < numSamples; i++) {
+				const s = Math.max(-1, Math.min(1, samples[i]));
+				view.setInt16(44 + i * 2, s * 0x7fff, true);
+			}
+
+			set((state) => ({
 				configuration: {
-					name: currentConfig.name,
-					colorCode: currentConfig.colorCode,
-					buttons: currentConfig.buttons.map((button, buttonIndex) => {
+					name: configuration.name,
+					colorCode: configuration.colorCode,
+					buttons: configuration.buttons.map((button, buttonIndex) => {
 						if (buttonIndex === index) {
-							return { ...button, audioUrl: URL.createObjectURL(audio) };
+							return {
+								...button,
+								audioUrl: URL.createObjectURL(new Blob([view], { type: "audio/wav" })),
+							};
 						} else {
 							return button;
 						}
 					}),
 				},
-			};
-		});
+			}));
+		} catch (err) {
+			toast.error(`Převod zvuku selhal s chybou: ${err}`);
+
+			return;
+		}
 	},
 	updateButtonLabel: (index, label) => {
 		set((state) => {
