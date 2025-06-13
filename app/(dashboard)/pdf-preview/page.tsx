@@ -229,8 +229,12 @@ export default function Page() {
 						});
 					}
 
-					page.drawText("Plajta-Lithos 2025", {
-						x: offsetPoints(buttonIndex * (template.container.width / 3)) + 4,
+					const text = "ssssssssssssss";
+
+					const textWidth = font.widthOfTextAtSize(text, 15);
+
+					page.drawText(text, {
+						x: offsetPoints(buttonIndex + 1 * (template.container.width / 3)),
 						y:
 							offsetPoints(
 								template.container.height -

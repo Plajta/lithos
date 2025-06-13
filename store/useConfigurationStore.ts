@@ -1,6 +1,7 @@
 import JSZip from "jszip";
 import { toast } from "sonner";
 import { create } from "zustand";
+import { generatePdf } from "~/lib/pdf-generator";
 
 export const COLOR_LOOKUP_TABLE = {
 	RED: "ff0000",
@@ -48,6 +49,7 @@ interface ConfigurationState {
 	uploadButtonImage: (index: number, image: Blob) => void;
 	uploadButtonAudio: (index: number, voice: Blob) => Promise<void>;
 	updateButtonLabel: (index: number, label: string) => void;
+	generateConfigurationPdf: () => Promise<void>;
 }
 
 export const useConfigurationStore = create<ConfigurationState>()((set, get) => ({
@@ -289,5 +291,12 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				},
 			};
 		});
+	},
+	generateConfigurationPdf: async () => {
+		const { configuration } = get();
+
+		if (configuration) {
+			await generatePdf({ configuration });
+		}
 	},
 }));
