@@ -11,7 +11,7 @@ export const COLOR_LOOKUP_TABLE = {
 
 export const Colors = ["RED", "GREEN", "BLUE"] as const;
 
-export const ConfigurationTypes = ["sysiphus"] as const;
+export const ConfigurationTypes = ["sisyphus"] as const;
 
 export interface Configuration {
 	name: string;
