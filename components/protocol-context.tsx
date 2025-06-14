@@ -37,6 +37,7 @@ interface CommandResponse {
 	rm: string;
 	mv: string;
 	play: string;
+	pull: Blob;
 }
 
 function crc32(buf: Uint8Array) {
@@ -62,6 +63,7 @@ const COMMANDS = {
 	RM: "rm",
 	MV: "mv",
 	PLAY: "play",
+	PULL: "pull",
 };
 
 type Response<T> = Promise<{ success: boolean; data: T | string }>;
@@ -81,6 +83,7 @@ interface ProtocolContextType {
 			rm: (path: string) => Response<CommandResponse["rm"]>;
 			mv: (path: string, dest: string) => Response<CommandResponse["mv"]>;
 			play: (path: string) => Response<CommandResponse["play"]>;
+			pull: (path: string) => Response<CommandResponse["pull"]>;
 		};
 	};
 }
@@ -360,13 +363,88 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		};
 	}
 
+	async function pull(dest: string): Response<CommandResponse["pull"]> {
+		if (!writer) {
+			return {
+				success: false,
+				data: "Writing data to device failed.",
+			};
+		}
+
+		if (!reader) {
+			return {
+				success: false,
+				data: "Reading data from device failed.",
+			};
+		}
+
+		await sendCommand(`${COMMANDS.PULL} ${dest}`);
+
+		const response = await readLine();
+
+		if (!response || !response.startsWith(DEVICE_RESPONSE.ACK)) {
+			return {
+				success: false,
+				data: "Device returned unxpected response. Pull failed.",
+			};
+		}
+
+		const parsedResponse = response.split(" ");
+
+		const size = parseInt(parsedResponse[1], 10);
+		const expectedChecksum = parseInt(parsedResponse[2], 10);
+
+		const chunks: Uint8Array[] = [];
+		let received = 0;
+
+		while (received < size) {
+			await sendCommand(DEVICE_RESPONSE.ACK);
+
+			const chunkSize = Math.min(CHUNK_SIZE, size - received);
+			const buffer = new Uint8Array(chunkSize);
+			const { value, done } = await reader.read(buffer);
+
+			if (done || !value || value.byteLength === 0) {
+				return {
+					success: false,
+					data: `Failed to read expected data chunk. Received ${received}/${size} bytes.`,
+				};
+			}
+
+			chunks.push(value.subarray(0, value.byteLength));
+			received += value.byteLength;
+		}
+
+		const fullData = new Uint8Array(size);
+		let offset = 0;
+		for (const chunk of chunks) {
+			fullData.set(chunk, offset);
+			offset += chunk.length;
+		}
+
+		const actualChecksum = crc32(fullData);
+
+		if (actualChecksum !== expectedChecksum) {
+			return {
+				success: false,
+
+				data: `Checksum mismatch! Expected ${expectedChecksum}, got ${actualChecksum}`,
+			};
+		}
+
+		return {
+			success: true,
+			data: new Blob([fullData]),
+		};
+	}
+
 	return (
 		<ProtocolContext.Provider
 			value={{
 				connect,
 				protocol: {
 					connected: protocolInfo ? { info: protocolInfo } : null,
-					commands: { info, push, ls, rm, mv, play },
+					commands: { info, push, ls, rm, mv, play, pull },
 				},
 			}}
 		>
