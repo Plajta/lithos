@@ -28,6 +28,7 @@ interface CommandResponse {
 		usedBlockCount: number;
 		blockSize: number;
 		usesEternity: boolean;
+		loadedConfigurations: ConfigurationInfo[];
 	};
 	push: {
 		filePath: string;
@@ -38,6 +39,13 @@ interface CommandResponse {
 	mv: string;
 	play: string;
 	pull: Blob;
+}
+
+interface ConfigurationInfo {
+	colorCode: string;
+	name: string;
+	uploadedAt: Date;
+	size: number;
 }
 
 function crc32(buf: Uint8Array) {
@@ -179,6 +187,8 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			.slice(0, -2)
 			.split(" ");
 
+		const { success, data } = await pull("conf_info");
+
 		return {
 			success: true,
 			data: {
@@ -191,6 +201,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 				usedBlockCount: +usedBlockCount,
 				blockSize: +blockSize,
 				usesEternity: !response[response.length],
+				loadedConfigurations: success ? JSON.parse(await (data as Blob).text()) : [],
 			},
 		};
 	}
@@ -385,7 +396,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		if (!response || !response.startsWith(DEVICE_RESPONSE.ACK)) {
 			return {
 				success: false,
-				data: "Device returned unxpected response. Pull failed.",
+				data: `Device returned unxpected response. Pull failed. - ${response}`,
 			};
 		}
 

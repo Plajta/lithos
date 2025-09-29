@@ -1,11 +1,6 @@
 "use client";
 
-import { Collapsible } from "@radix-ui/react-collapsible";
-import { ChevronRight, type LucideIcon } from "lucide-react";
-import { useParams, usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
-
-import { CollapsibleContent, CollapsibleTrigger } from "~/components/ui/collapsible";
 
 import {
 	SidebarGroup,
@@ -14,31 +9,27 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarMenuSub,
-	SidebarMenuSubButton,
-	SidebarMenuSubItem,
 } from "~/components/ui/sidebar";
 import { useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
+import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
+import { ChevronRight } from "lucide-react";
+import { Separator } from "~/components/ui/separator";
 
-export interface NavItem {
-	title: string;
-	url: string;
-	description: string;
-	icon: LucideIcon;
-	subItems: { title: string; url: string }[];
-}
-
-export function NavMain({ items }: { items: NavItem[] }) {
-	const pathname = usePathname();
-	const params = useParams();
-
+export function NavMain() {
 	const { connect, protocol } = useProtocol();
 
 	return (
 		<SidebarGroup>
 			<div className="flex flex-col gap-2">
 				{!protocol.connected && (
-					<Button onClick={async () => await connect()} className="w-full" variant="outline">
+					<Button
+						onClick={async () => {
+							await connect();
+						}}
+						className="w-full"
+						variant="outline"
+					>
 						<p>Připojit Komunikátor</p>
 					</Button>
 				)}
@@ -48,45 +39,50 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
 			{protocol.connected && (
 				<SidebarMenu>
-					{items.map((item) => (
-						<Collapsible
-							key={item.title}
-							asChild
-							defaultOpen={item.url === pathname.replace(`/${params.sheetId}`, "")}
-						>
+					<Separator className="my-2" />
+
+					<p className="text-sm font-semibold">Nahrané konfigurace</p>
+
+					{protocol.connected.info.loadedConfigurations.map((item) => (
+						<Collapsible key={item.name} asChild>
 							<SidebarMenuItem>
-								<SidebarMenuButton asChild tooltip={item.title}>
-									<a href={item.url}>
-										<item.icon />
-										<span>{item.title}</span>
-									</a>
+								<SidebarMenuButton asChild tooltip={item.name}>
+									<span>
+										<div
+											style={{
+												backgroundColor: item.colorCode,
+												width: 10,
+												height: 10,
+												borderRadius: "50%",
+												display: "inline-block",
+											}}
+										></div>
+										{item.name}
+									</span>
 								</SidebarMenuButton>
-								{item.subItems?.length ? (
-									<>
-										<CollapsibleTrigger asChild>
-											<SidebarMenuAction className="data-[state=open]:rotate-90">
-												<ChevronRight />
-												<span className="sr-only">Toggle</span>
-											</SidebarMenuAction>
-										</CollapsibleTrigger>
-										<CollapsibleContent>
-											<SidebarMenuSub>
-												{item.subItems?.map((subItem) => (
-													<SidebarMenuSubItem key={subItem.title}>
-														<SidebarMenuSubButton
-															asChild
-															isActive={pathname === subItem.url}
-														>
-															<a href={subItem.url}>
-																<span>{subItem.title}</span>
-															</a>
-														</SidebarMenuSubButton>
-													</SidebarMenuSubItem>
-												))}
-											</SidebarMenuSub>
-										</CollapsibleContent>
-									</>
-								) : null}
+
+								<CollapsibleTrigger asChild>
+									<SidebarMenuAction className="data-[state=open]:rotate-90">
+										<ChevronRight />
+										<span className="sr-only">Toggle</span>
+									</SidebarMenuAction>
+								</CollapsibleTrigger>
+
+								<CollapsibleContent>
+									<SidebarMenuSub className="text-sm">
+										<div>
+											<p>Nahráno:</p>
+											{new Date(item.uploadedAt as any).toLocaleString()}
+										</div>
+									</SidebarMenuSub>
+
+									<SidebarMenuSub className="text-sm">
+										<div className="flex justify-between">
+											<p>Velikost:</p>
+											{Math.round(item.size / 1000).toFixed(0)} Kb
+										</div>
+									</SidebarMenuSub>
+								</CollapsibleContent>
 							</SidebarMenuItem>
 						</Collapsible>
 					))}

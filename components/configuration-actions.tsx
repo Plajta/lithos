@@ -29,7 +29,7 @@ export function ConfigurationActions() {
 		[configuration]
 	);
 
-	const uploadAudioFiles = async () => {
+	const uploadConfiguration = async () => {
 		if (configuration) {
 			{
 				const colorLookupTable = getColorLookupTable();
@@ -40,6 +40,23 @@ export function ConfigurationActions() {
 					toast.error(response.data as string);
 					return;
 				}
+			}
+
+			{
+				await protocol.commands.push(
+					new Blob([
+						JSON.stringify([
+							...protocol.connected!.info.loadedConfigurations,
+							{
+								colorCode: configuration.colorCode,
+								name: configuration.name,
+								uploadedAt: new Date().toISOString(),
+								size: configuration.size,
+							},
+						]),
+					]),
+					"conf_info"
+				);
 			}
 
 			if (configuration.buttons.length === 0) {
@@ -114,7 +131,7 @@ export function ConfigurationActions() {
 					<Button
 						variant="outline"
 						disabled={uploadInProgress || !configuration}
-						onClick={async () => await uploadAudioFiles()}
+						onClick={async () => await uploadConfiguration()}
 					>
 						<p>Nahrát kartu do zařízení</p>
 					</Button>

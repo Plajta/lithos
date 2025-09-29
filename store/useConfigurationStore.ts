@@ -17,6 +17,7 @@ export interface Configuration {
 	name: string;
 	colorCode: string;
 	buttons: Button[];
+	size: number;
 }
 
 export interface Button {
@@ -30,6 +31,13 @@ interface Manifest {
 	name: string;
 	colorCode: string;
 	buttons: { label: string }[];
+}
+
+interface ConfigurationInfo {
+	colorCode: string;
+	name: string;
+	uploadedAt: Date;
+	size: number;
 }
 
 interface ConfigurationState {
@@ -60,6 +68,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				name,
 				colorCode,
 				buttons: Array.from({ length: 9 }).map(() => ({ label: null, imageUrl: null, audioUrl: null })),
+				size: 0,
 			},
 		}));
 	},
@@ -89,11 +98,16 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			return;
 		}
 
+		let size = 0;
+
 		const buttons: Button[] = [];
 
 		for (const [index, button] of manifest.buttons.entries()) {
 			const buttonImage = await images[index].async("blob");
 			const buttonAudio = await audio[index].async("blob");
+
+			size += buttonImage.size;
+			size += buttonAudio.size;
 
 			if (!buttonImage || !buttonAudio) continue;
 
@@ -109,6 +123,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				name: manifest.name,
 				colorCode: manifest.colorCode,
 				buttons,
+				size,
 			},
 		}));
 	},
@@ -186,6 +201,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				configuration: {
 					name: state.configuration!.name,
 					colorCode: state.configuration!.colorCode,
+					size: state.configuration!.size + image.size,
 					buttons: state.configuration!.buttons.map((button, buttonIndex) => {
 						if (buttonIndex === index) {
 							return { ...button, imageUrl: canvas.toDataURL("image/png") };
@@ -255,6 +271,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				configuration: {
 					name: configuration.name,
 					colorCode: configuration.colorCode,
+					size: configuration.size + audio.size,
 					buttons: configuration.buttons.map((button, buttonIndex) => {
 						if (buttonIndex === index) {
 							return {
@@ -281,6 +298,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				configuration: {
 					name: currentConfig.name,
 					colorCode: currentConfig.colorCode,
+					size: currentConfig.size,
 					buttons: currentConfig.buttons.map((button, buttonIndex) => {
 						if (buttonIndex === index) {
 							return { ...button, label };
