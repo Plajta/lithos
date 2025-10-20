@@ -81,13 +81,13 @@ export function VoiceRecorder({ index }: { index: number }) {
 			<Separator orientation="vertical" />
 
 			<Button asChild variant="outline">
-				<label htmlFor="picture">
+				<label htmlFor="audioInput">
 					Nahrát soubor
 					<input
-						id="picture"
+						id="audioInput"
 						name="image"
 						type="file"
-						accept="voice/wav"
+						accept="audio/wav"
 						hidden
 						onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
 							const file = event.target.files?.[0];
