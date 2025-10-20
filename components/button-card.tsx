@@ -5,7 +5,7 @@ import { Separator } from "~/components/ui/separator";
 import { VoiceButton } from "~/components/voice-button";
 import { Button as ButtonType, useConfigurationStore } from "~/store/useConfigurationStore";
 
-export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { button: ButtonType; index: number }) {
+export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { button: ButtonType }) {
 	const { uploadButtonImage, updateButtonLabel } = useConfigurationStore();
 
 	return (
@@ -15,7 +15,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { b
 					<img width={150} height={100} src={imageUrl} />
 				) : (
 					<label
-						htmlFor="dropzone-file"
+						id={`dropzone-file-${id}`}
 						className="flex-1 flex items-center p-0 m-0 justify-center w-full border-2 border-gray-300 border-dashed rounded-t-xl cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500"
 					>
 						<div className="flex flex-col items-center justify-center flex-1">
@@ -31,7 +31,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { b
 						</div>
 
 						<input
-							id="dropzone-file"
+							id={`dropzone-file-${id}`}
 							accept="image/png"
 							type="file"
 							className="hidden"
@@ -39,7 +39,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { b
 								const file = event.target.files?.[0];
 								if (!file) return;
 
-								uploadButtonImage(index, file);
+								uploadButtonImage(id, file);
 							}}
 						/>
 					</label>
@@ -56,11 +56,11 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl }, index }: { b
 								className="text-lg p-0 m-0"
 								variant="ghost"
 								defaultValue={label ?? "Není zadán text tlačítka"}
-								onChange={(e) => updateButtonLabel(index, e.target.value)}
+								onChange={(e) => updateButtonLabel(id, e.target.value)}
 							/>
 
 							<div className="flex gap-1">
-								<VoiceButton index={index} source={audioUrl} />
+								<VoiceButton index={id} source={audioUrl} />
 							</div>
 						</div>
 					</div>

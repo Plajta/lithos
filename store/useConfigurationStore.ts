@@ -21,6 +21,7 @@ export interface Configuration {
 }
 
 export interface Button {
+	id: number;
 	label: string | null;
 	imageUrl: string | null;
 	audioUrl: string | null;
@@ -67,7 +68,12 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			configuration: {
 				name,
 				colorCode,
-				buttons: Array.from({ length: 9 }).map(() => ({ label: null, imageUrl: null, audioUrl: null })),
+				buttons: Array.from({ length: type === "sisyphus" ? 16 : 9 }).map((_, index) => ({
+					id: index,
+					label: null,
+					imageUrl: null,
+					audioUrl: null,
+				})),
 				size: 0,
 			},
 		}));
@@ -112,6 +118,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			if (!buttonImage || !buttonAudio) continue;
 
 			buttons.push({
+				id: index,
 				label: button.label,
 				imageUrl: URL.createObjectURL(buttonImage),
 				audioUrl: URL.createObjectURL(buttonAudio),

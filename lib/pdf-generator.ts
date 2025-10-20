@@ -1,295 +1,120 @@
 "use client";
 
-import { PDFDocument, rgb, PageSizes, StandardFonts } from "pdf-lib";
-import { useEffect, useState } from "react";
-import fontkit from "@pdf-lib/fontkit";
-import { Configuration } from "~/store/useConfigurationStore";
+import type PDFDocument from "pdfkit";
+// @ts-ignore - pdfkit/js/pdfkit.standalone lacks type declarations
+import StandalonePDFDocument from "pdfkit/js/pdfkit.standalone";
 
-const template = {
-	container: {
-		width: 138,
-		height: 160,
-	},
-	header: {
-		height: 20,
-	},
-};
+import BlobStream from "blob-stream";
+import { COLOR_LOOKUP_TABLE, Configuration } from "~/store/useConfigurationStore";
 
-function mmsToPoints(mms: number) {
-	return mms * 2.83465;
+function convertUnits(mm: number) {
+	return mm * 2.83465;
 }
 
-function offsetPoints(points: number) {
-	return mmsToPoints(points) + mmsToPoints(10);
+function baseOffset(mm: number) {
+	return convertUnits(mm) + convertUnits(5);
 }
 
-function create2DArrayFromArray<T>(arr: T[], rows: number): T[][] {
-	const validLengths = [9, 12];
+function arrayToMatrix<T>(data: T[], rows: number, cols: number): (T | null)[][] {
+	const matrix: (T | null)[][] = Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
 
-	if (!validLengths.includes(arr.length)) {
-		throw new Error("Input array must contain exactly 9 or 12 elements.");
-	}
+	let dataIndex = 0;
 
-	const elementsPerRow = 3;
-
-	if (arr.length / elementsPerRow !== rows) {
-		throw new Error(`The number of rows must be ${arr.length / elementsPerRow}.`);
-	}
-
-	const result: T[][] = [];
-	for (let i = 0; i < rows; i++) {
-		result.push(arr.slice(i * elementsPerRow, (i + 1) * elementsPerRow));
-	}
-
-	return result.reverse();
-}
-
-const DebugFrames = true;
-
-export async function generatePdf({ configuration }: { configuration: Configuration }) {
-	const pdfDoc = await PDFDocument.create();
-	const page = pdfDoc.addPage(PageSizes.A4);
-
-	const fontBytes = await fetch("https://pdf-lib.js.org/assets/ubuntu/Ubuntu-R.ttf").then((res) => res.arrayBuffer());
-
-	pdfDoc.registerFontkit(fontkit);
-
-	const font = await pdfDoc.embedFont(fontBytes);
-
-	page.drawRectangle({
-		x: offsetPoints(0),
-		y: offsetPoints(0),
-		width: mmsToPoints(template.container.width),
-		height: mmsToPoints(template.container.height),
-		borderWidth: 1,
-		borderColor: rgb(0, 0, 0),
-	});
-
-	page.drawLine({
-		start: { x: offsetPoints(0), y: offsetPoints(template.container.height - template.header.height) },
-		end: {
-			x: offsetPoints(template.container.width),
-			y: offsetPoints(template.container.height - template.header.height),
-		},
-		thickness: 1,
-		color: rgb(0, 0, 0),
-	});
-
-	page.drawLine({
-		start: { x: offsetPoints(0), y: offsetPoints(template.container.height - template.header.height / 2) },
-		end: {
-			x: offsetPoints(template.container.width),
-			y: offsetPoints(template.container.height - template.header.height / 2),
-		},
-		thickness: 1,
-		color: rgb(0, 0, 0),
-	});
-
-	// nahore leva
-	if (DebugFrames) {
-		page.drawRectangle({
-			x: offsetPoints(0),
-			y: offsetPoints(template.container.height - template.header.height / 2),
-			width: mmsToPoints(template.container.width / 3),
-			height: mmsToPoints(template.header.height / 2),
-			borderWidth: 1,
-			borderColor: rgb(1, 0, 0),
-		});
-	}
-
-	page.drawText("-- Tudle vohnout --", {
-		x: offsetPoints(0) + 4,
-		y: offsetPoints(template.container.height - template.header.height / 2) + 9,
-		size: 15,
-		font: font,
-		color: rgb(0, 0, 0),
-	});
-
-	// nahore uprostred
-	if (DebugFrames) {
-		page.drawRectangle({
-			x: offsetPoints(template.container.width / 3),
-			y: offsetPoints(template.container.height - template.header.height / 2),
-			width: mmsToPoints(template.container.width / 3),
-			height: mmsToPoints(template.header.height / 2),
-			borderWidth: 1,
-			borderColor: rgb(1, 0, 0),
-		});
-	}
-
-	page.drawRectangle({
-		x: offsetPoints(template.container.width / 3),
-		y: offsetPoints(template.container.height - template.header.height / 2),
-		width: mmsToPoints(template.container.width / 3),
-		height: mmsToPoints(template.header.height / 2),
-		color: rgb(0, 1, 0),
-	});
-
-	// nahore prava
-	if (DebugFrames) {
-		page.drawRectangle({
-			x: offsetPoints(2 * (template.container.width / 3)),
-			y: offsetPoints(template.container.height - template.header.height / 2),
-			width: mmsToPoints(template.container.width / 3),
-			height: mmsToPoints(template.header.height / 2),
-			borderWidth: 1,
-			borderColor: rgb(1, 0, 0),
-		});
-	}
-
-	page.drawText("-- Tudle vohnout --", {
-		x: offsetPoints(2 * (template.container.width / 3)) + 4,
-		y: offsetPoints(template.container.height - template.header.height / 2) + 9,
-		size: 15,
-		font: font,
-		color: rgb(0, 0, 0),
-	});
-
-	// dole leva + uprostred
-	if (DebugFrames) {
-		page.drawRectangle({
-			x: offsetPoints(0),
-			y: offsetPoints(template.container.height - template.header.height),
-			width: mmsToPoints(template.container.width / 3) + mmsToPoints(template.container.width / 3),
-			height: mmsToPoints(template.header.height / 2),
-			borderWidth: 1,
-			borderColor: rgb(1, 0, 0),
-		});
-	}
-
-	page.drawText(configuration.name, {
-		x: offsetPoints(0) + 6,
-		y: offsetPoints(template.container.height - template.header.height) + 9,
-		size: 15,
-		font: font,
-		color: rgb(0, 0, 0),
-		maxWidth: mmsToPoints(template.container.width / 3) + mmsToPoints(template.container.width / 3),
-	});
-
-	// dole prava
-	if (DebugFrames) {
-		page.drawRectangle({
-			x: offsetPoints(2 * (template.container.width / 3)),
-			y: offsetPoints(template.container.height - template.header.height),
-			width: mmsToPoints(template.container.width / 3),
-			height: mmsToPoints(template.header.height / 2),
-			borderWidth: 1,
-			borderColor: rgb(1, 0, 0),
-		});
-	}
-
-	page.drawText("Plajta-Lithos 2025", {
-		x: offsetPoints(2 * (template.container.width / 3)) + 4,
-		y: offsetPoints(template.container.height - template.header.height) + 9,
-		size: 15,
-		font: font,
-		color: rgb(0, 0, 0),
-	});
-
-	const button2DArray = create2DArrayFromArray(configuration.buttons, 3);
-
-	for (const [rowIndex, row] of button2DArray.entries()) {
-		for (const [buttonIndex, button] of row.entries()) {
-			if (!button.label || !button.imageUrl) {
-				continue;
+	for (let r = 0; r < rows; r++) {
+		for (let c = 0; c < cols; c++) {
+			if (dataIndex < data.length) {
+				matrix[r][c] = data[dataIndex];
+				dataIndex++;
+			} else {
+				return matrix;
 			}
-
-			// grid
-			if (DebugFrames) {
-				page.drawRectangle({
-					x: offsetPoints(buttonIndex * (template.container.width / 3)),
-					y: offsetPoints(
-						template.container.height -
-							template.header.height -
-							((rowIndex + 1) * (template.container.height - template.header.height)) / 3
-					),
-					width: mmsToPoints(template.container.width / 3),
-					height: mmsToPoints((template.container.height - template.header.height) / 3),
-					borderWidth: 1,
-					borderColor: rgb(0, 0, 0),
-				});
-			}
-
-			// text
-			if (DebugFrames) {
-				page.drawRectangle({
-					x: offsetPoints(buttonIndex * (template.container.width / 3)),
-					y: offsetPoints(
-						template.container.height -
-							template.header.height -
-							((rowIndex + 1) * (template.container.height - template.header.height)) / 3
-					),
-					width: mmsToPoints(template.container.width / 3),
-					height: mmsToPoints(template.header.height / 2),
-					color: rgb(0, 1, 0),
-				});
-			}
-
-			const textWidth = font.widthOfTextAtSize(button.label, 15);
-
-			page.drawText(button.label, {
-				x: offsetPoints(buttonIndex * (template.container.width / 3)) + textWidth / 2,
-				y:
-					offsetPoints(
-						template.container.height -
-							template.header.height -
-							((rowIndex + 1) * (template.container.height - template.header.height)) / 3
-					) + 9,
-				size: 15,
-				font: font,
-				color: rgb(0, 0, 0),
-			});
-
-			// obrazek
-			if (DebugFrames) {
-				page.drawRectangle({
-					x: offsetPoints(buttonIndex * (template.container.width / 3)),
-					y: offsetPoints(
-						template.container.height -
-							template.header.height -
-							((rowIndex + 1) * (template.container.height - template.header.height)) / 3 +
-							10
-					),
-					width: mmsToPoints(template.container.width / 3),
-					height: mmsToPoints(
-						(template.container.height - template.header.height) / 3 - template.header.height / 2
-					),
-					color: rgb(0, 0, 1),
-				});
-			}
-
-			const imageBytes = await fetch(button.imageUrl).then((res) => res.arrayBuffer());
-
-			const image = await pdfDoc.embedPng(imageBytes);
-
-			page.drawImage(image, {
-				x: offsetPoints(buttonIndex * (template.container.width / 3) + 1),
-				y: offsetPoints(
-					template.container.height -
-						template.header.height -
-						((rowIndex + 1) * (template.container.height - template.header.height)) / 3 +
-						10
-				),
-				width: mmsToPoints(template.container.width / 3 - 2),
-				height: mmsToPoints(
-					(template.container.height - template.header.height) / 3 - template.header.height / 2 - 1
-				),
-			});
 		}
 	}
 
-	const pdfBytes = await pdfDoc.save();
-	const blob = new Blob([pdfBytes], { type: "application/pdf" });
-	const url = URL.createObjectURL(blob);
+	return matrix;
+}
 
-	const a = document.createElement("a");
+export async function generatePdf({ configuration }: { configuration: Configuration }) {
+	const doc = new StandalonePDFDocument() as typeof PDFDocument;
+	const stream = doc.pipe(BlobStream());
 
-	a.href = url;
-	a.download = `${configuration.name}_lithos.pdf`;
-	document.body.appendChild(a);
+	const matrix = arrayToMatrix(configuration.buttons, 4, 4);
 
-	a.click();
+	const fontBytes = await fetch("/lithos/fonts/Roboto-Regular.ttf");
 
-	document.body.removeChild(a);
-	URL.revokeObjectURL(url);
+	doc.registerFont("Roboto-Regular", await fontBytes.arrayBuffer());
+
+	for (const [rowIndex, row] of matrix.entries()) {
+		for (const [colIndex, col] of row.entries()) {
+			doc.roundedRect(
+				baseOffset(10) + convertUnits(46) * colIndex,
+				baseOffset(10) + convertUnits(46) * rowIndex,
+				convertUnits(43),
+				convertUnits(43),
+				10
+			).stroke();
+
+			if (!col || !col.label || !col.imageUrl) {
+				continue;
+			}
+
+			doc.font("Roboto-Regular").text(
+				col.label,
+				baseOffset(10) + convertUnits(46) * colIndex,
+				baseOffset(48) + convertUnits(45) * rowIndex + rowIndex * 3,
+				{
+					width: convertUnits(40),
+					align: "center",
+					baseline: "bottom",
+				}
+			);
+
+			const imageBytes = await fetch(col.imageUrl!).then((res) => res.arrayBuffer());
+
+			doc.image(
+				imageBytes,
+				baseOffset(12) + convertUnits(46) * colIndex,
+				baseOffset(12) + convertUnits(45) * rowIndex + rowIndex * 3,
+				{
+					width: 110,
+					height: 80,
+					align: "center",
+					valign: "bottom",
+				}
+			);
+		}
+	}
+
+	doc.rect(baseOffset(6), baseOffset(6), convertUnits(189), convertUnits(205)).stroke();
+
+	doc.rect(baseOffset(6), baseOffset(201), convertUnits(189), convertUnits(10)).stroke();
+
+	doc.fontSize(20);
+
+	doc.font("Roboto-Regular").text(configuration.name, baseOffset(6), baseOffset(202), {
+		width: convertUnits(99),
+		height: convertUnits(10),
+		align: "center",
+	});
+
+	doc.rect(baseOffset(105), baseOffset(201), convertUnits(90), convertUnits(10)).fill(
+		`#${COLOR_LOOKUP_TABLE[configuration.colorCode as keyof typeof COLOR_LOOKUP_TABLE]}`
+	);
+
+	doc.end();
+
+	stream.on("finish", function () {
+		const url = stream.toBlobURL("application/pdf");
+
+		const a = document.createElement("a");
+
+		a.href = url;
+		a.download = `${configuration.name}_lithos.pdf`;
+		document.body.appendChild(a);
+
+		a.click();
+
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	});
 }

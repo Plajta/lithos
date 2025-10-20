@@ -8,9 +8,9 @@ export default function Page() {
 
 	return configuration ? (
 		<div className="flex flex-1 flex-col gap-4 px-4 pb-0">
-			<div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-				{configuration.buttons.map((item, index) => (
-					<ButtonCard key={`configuration-buttonCard-${index}`} button={item} index={index} />
+			<div className="grid grid-cols-1 sm:grid-cols-4 gap-8">
+				{configuration.buttons.map((item) => (
+					<ButtonCard key={`configuration-buttonCard-${item.id}`} button={item} />
 				))}
 			</div>
 		</div>
