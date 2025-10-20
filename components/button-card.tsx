@@ -55,7 +55,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 							<Input
 								className="text-lg p-0 m-0"
 								variant="ghost"
-								defaultValue={label ?? "Není zadán text tlačítka"}
+								placeholder={`Text tlačítka ${id + 1}`}
 								onChange={(e) => updateButtonLabel(id, e.target.value)}
 							/>
 
