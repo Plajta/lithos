@@ -1,4 +1,5 @@
 import { Upload, X } from "lucide-react";
+import { useRef } from "react";
 import { Card, CardHeader, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
@@ -7,6 +8,8 @@ import { Button as ButtonType, useConfigurationStore } from "~/store/useConfigur
 
 export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { button: ButtonType }) {
 	const { uploadButtonImage, updateButtonLabel } = useConfigurationStore();
+
+	const previousValue = useRef(label);
 
 	return (
 		<Card className="h-[280px] p-0 gap-0 justify-between">
@@ -71,7 +74,14 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 								variant="ghost"
 								placeholder={`Text tlačítka ${id + 1}`}
 								value={label ?? ""}
-								onClick={(e) => e.target.select()}
+								onFocus={() => previousValue.current === label}
+								onKeyDown={(e: any) => {
+									if (e.key === "Escape") {
+										updateButtonLabel(id, previousValue.current!);
+										e.target.blur();
+									}
+								}}
+								onClick={(e: any) => e.target.select()}
 								onChange={(e) => updateButtonLabel(id, e.target.value)}
 							/>
 
