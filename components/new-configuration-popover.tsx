@@ -83,7 +83,7 @@ export function NewConfigurationPopover() {
 											<SelectContent>
 												{ConfigurationTypes.map((type) => (
 													<SelectItem key={`configuration-${type}`} value={type}>
-														{type}
+														Sisyphus 4x4
 													</SelectItem>
 												))}
 											</SelectContent>

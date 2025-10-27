@@ -10,7 +10,7 @@ import { Input } from "~/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { COLOR_LOOKUP_TABLE, Colors, ConfigurationTypes, useConfigurationStore } from "~/store/useConfigurationStore";
+import { COLOR_LOOKUP_TABLE, Colors, useConfigurationStore } from "~/store/useConfigurationStore";
 
 const FormSchema = z.object({
 	name: z.string().min(3, {
