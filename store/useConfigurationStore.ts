@@ -58,6 +58,7 @@ interface ConfigurationState {
 		type: (typeof ConfigurationTypes)[number];
 		colorCode: (typeof Colors)[number];
 	}) => void;
+	updateConfiguration: ({ name, colorCode }: { name: string; colorCode: (typeof Colors)[number] }) => void;
 	loadConfiguration: (file: File) => Promise<void>;
 	saveConfiguration: () => Promise<void>;
 	getColorLookupTable: () => string;
@@ -83,6 +84,22 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				size: 0,
 			},
 		}));
+	},
+	updateConfiguration: ({ name, colorCode }) => {
+		set((prev) => {
+			if (!prev.configuration) {
+				return prev;
+			}
+
+			return {
+				...prev,
+				configuration: {
+					...prev.configuration,
+					name,
+					colorCode,
+				},
+			};
+		});
 	},
 	loadConfiguration: async (file) => {
 		const zip = new JSZip();
