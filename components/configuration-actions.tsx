@@ -130,7 +130,7 @@ export function ConfigurationActions() {
 				<PopoverAnchor>
 					<Button
 						variant="outline"
-						disabled={uploadInProgress || !configuration}
+						disabled={uploadInProgress || !protocol.connected}
 						onClick={async () => await uploadConfiguration()}
 					>
 						<p>Nahrát kartu do zařízení</p>
