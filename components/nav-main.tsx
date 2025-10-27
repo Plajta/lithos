@@ -49,7 +49,7 @@ export function NavMain() {
 							<SidebarMenuItem>
 								<SidebarMenuButton asChild tooltip={item.name}>
 									<span>
-										<ColorDot value={item.colorCode} />
+										<ColorDot size={10} value={`#${item.colorCode}`} />
 
 										{item.name}
 									</span>

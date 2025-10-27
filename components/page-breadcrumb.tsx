@@ -17,7 +17,7 @@ export function PageBreadcrumb() {
 							<div className="flex gap-2 items-center">
 								{configuration && (
 									<>
-										<ColorDot value={configuration.colorCode} />
+										<ColorDot size={10} value={`#${configuration.colorCode}`} />
 
 										<p className="font-bold">{configuration.name}</p>
 									</>
