@@ -71,6 +71,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 								variant="ghost"
 								placeholder={`Text tlačítka ${id + 1}`}
 								value={label ?? ""}
+								onClick={(e) => e.target.select()}
 								onChange={(e) => updateButtonLabel(id, e.target.value)}
 							/>
 
