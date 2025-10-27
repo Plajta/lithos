@@ -23,7 +23,8 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 								<Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
 
 								<p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-									<span className="font-semibold">Klikni pro nahrání</span> nebo přetáhni soubor
+									<span className="font-semibold">Klikni pro nahrání obrázku</span> nebo přetáhni
+									soubor
 								</p>
 
 								<p className="text-xs text-gray-500 dark:text-gray-400">zatím jenom PNG</p>
