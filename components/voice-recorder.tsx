@@ -1,3 +1,4 @@
+import { PopoverClose } from "@radix-ui/react-popover";
 import React, { useState, useRef } from "react";
 import { Button } from "~/components/ui/button";
 import { Separator } from "~/components/ui/separator";
@@ -61,18 +62,22 @@ export function VoiceRecorder({ index }: { index: number }) {
 	};
 
 	return (
-		<div className="flex gap-2 items-center h-10">
-			<Button
-				type="button"
-				variant={isRecording ? "destructive" : "outline"}
-				onClick={isRecording ? stopRecording : !isRecording && audioURL ? finishRecording : startRecording}
-			>
-				{isRecording
-					? "Zastavit Nahrávání"
-					: !isRecording && audioURL
-					? "Dokončit Nahrávání"
-					: "Začít Nahrávat"}
-			</Button>
+		<div className="flex gap-1 items-center h-10">
+			{!isRecording && audioURL ? (
+				<PopoverClose asChild>
+					<Button type="button" variant="outline" onClick={finishRecording}>
+						Dokončit Nahrávání
+					</Button>
+				</PopoverClose>
+			) : (
+				<Button
+					type="button"
+					variant={isRecording ? "destructive" : "outline"}
+					onClick={isRecording ? stopRecording : startRecording}
+				>
+					{isRecording ? "Zastavit Nahrávání" : "Začít Nahrávat"}
+				</Button>
+			)}
 
 			{audioURL && !isRecording && <audio className="h-10" controls src={audioURL} />}
 

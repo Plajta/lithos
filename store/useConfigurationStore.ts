@@ -63,7 +63,7 @@ interface ConfigurationState {
 	saveConfiguration: () => Promise<void>;
 	getColorLookupTable: () => string;
 	uploadButtonImage: (index: number, image: Blob | null) => void;
-	uploadButtonAudio: (index: number, voice: Blob) => Promise<void>;
+	uploadButtonAudio: (index: number, voice: Blob | null) => Promise<void>;
 	updateButtonLabel: (index: number, label: string) => void;
 	generateConfigurationPdf: () => Promise<void>;
 }
@@ -274,6 +274,28 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		const { configuration } = get();
 
 		if (!configuration) {
+			return;
+		}
+
+		if (!audio) {
+			set(() => ({
+				configuration: {
+					...configuration,
+					name: configuration.name,
+					colorCode: configuration.colorCode,
+					buttons: configuration.buttons.map((button, buttonIndex) => {
+						if (buttonIndex === index) {
+							return {
+								...button,
+								audioUrl: null,
+							};
+						} else {
+							return button;
+						}
+					}),
+				},
+			}));
+
 			return;
 		}
 
