@@ -1,4 +1,4 @@
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { Card, CardHeader, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
@@ -12,7 +12,20 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 		<Card className="h-[280px] p-0 gap-0 justify-between">
 			<CardHeader className="flex-1 flex flex-col items-center justify-center p-0">
 				{imageUrl ? (
-					<img width={150} height={100} src={imageUrl} />
+					<div className="relative group w-full h-full">
+						<div className="flex justify-center items-center h-full">
+							<img width={150} height={100} src={imageUrl} className="rounded-t-xl object-cover" />
+						</div>
+
+						<div
+							className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-t-xl"
+							onClick={() => uploadButtonImage(id, null)}
+							role="button"
+							aria-label="Odebrat obrázek"
+						>
+							<X className="w-10 h-10 text-white" />
+						</div>
+					</div>
 				) : (
 					<label
 						id={`dropzone-file-${id}`}
@@ -57,6 +70,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 								className="text-lg p-0 m-0"
 								variant="ghost"
 								placeholder={`Text tlačítka ${id + 1}`}
+								value={label ?? ""}
 								onChange={(e) => updateButtonLabel(id, e.target.value)}
 							/>
 

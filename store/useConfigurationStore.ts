@@ -62,7 +62,7 @@ interface ConfigurationState {
 	loadConfiguration: (file: File) => Promise<void>;
 	saveConfiguration: () => Promise<void>;
 	getColorLookupTable: () => string;
-	uploadButtonImage: (index: number, image: Blob) => void;
+	uploadButtonImage: (index: number, image: Blob | null) => void;
 	uploadButtonAudio: (index: number, voice: Blob) => Promise<void>;
 	updateButtonLabel: (index: number, label: string) => void;
 	generateConfigurationPdf: () => Promise<void>;
@@ -213,6 +213,31 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		return result;
 	},
 	uploadButtonImage: (index, image) => {
+		const { configuration } = get();
+
+		if (!configuration) {
+			return;
+		}
+
+		if (!image) {
+			set((state) => ({
+				configuration: {
+					...configuration,
+					name: state.configuration!.name,
+					colorCode: state.configuration!.colorCode,
+					buttons: state.configuration!.buttons.map((button, buttonIndex) => {
+						if (buttonIndex === index) {
+							return { ...button, imageUrl: null };
+						} else {
+							return button;
+						}
+					}),
+				},
+			}));
+
+			return;
+		}
+
 		const img = new Image();
 		img.onload = () => {
 			const canvas = document.createElement("canvas");
