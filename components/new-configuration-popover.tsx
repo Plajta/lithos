@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ColorDot } from "~/components/color-dot";
 
 import { Button } from "~/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
@@ -9,7 +10,7 @@ import { Input } from "~/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
-import { Colors, ConfigurationTypes, useConfigurationStore } from "~/store/useConfigurationStore";
+import { COLOR_LOOKUP_TABLE, Colors, ConfigurationTypes, useConfigurationStore } from "~/store/useConfigurationStore";
 
 const FormSchema = z.object({
 	name: z.string().min(3, {
@@ -110,7 +111,13 @@ export function NewConfigurationPopover() {
 											<SelectContent>
 												{Colors.map((type) => (
 													<SelectItem key={`configuration-${type}`} value={type}>
-														{type}
+														<span className="flex gap-2 items-center">
+															<ColorDot
+																size={10}
+																value={`#${COLOR_LOOKUP_TABLE[type]}`}
+															/>
+															<p>{type}</p>
+														</span>
 													</SelectItem>
 												))}
 											</SelectContent>

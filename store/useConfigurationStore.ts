@@ -7,9 +7,15 @@ export const COLOR_LOOKUP_TABLE = {
 	RED: "ff0000",
 	GREEN: "00ff00",
 	BLUE: "0000ff",
+	CYAN: "00ffff",
+	MAGENTA: "ff00ff",
+	YELLOW: "ffff00",
+	PURPLE: "800080",
+	ORANGE: "ffa500",
+	BLACK: "000000",
 } as const;
 
-export const Colors = ["RED", "GREEN", "BLUE"] as const;
+export const Colors = ["RED", "GREEN", "BLUE", "CYAN", "MAGENTA", "YELLOW", "PURPLE", "ORANGE", "BLACK"] as const;
 
 export const ConfigurationTypes = ["sisyphus"] as const;
 

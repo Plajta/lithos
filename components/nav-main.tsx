@@ -15,6 +15,7 @@ import { ProtocolInfo } from "~/components/protocol-info";
 import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
 import { Separator } from "~/components/ui/separator";
+import { ColorDot } from "~/components/color-dot";
 
 export function NavMain() {
 	const { connect, protocol } = useProtocol();
@@ -48,15 +49,8 @@ export function NavMain() {
 							<SidebarMenuItem>
 								<SidebarMenuButton asChild tooltip={item.name}>
 									<span>
-										<div
-											style={{
-												backgroundColor: item.colorCode,
-												width: 10,
-												height: 10,
-												borderRadius: "50%",
-												display: "inline-block",
-											}}
-										></div>
+										<ColorDot value={item.colorCode} />
+
 										{item.name}
 									</span>
 								</SidebarMenuButton>

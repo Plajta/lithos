@@ -1,5 +1,6 @@
 "use client";
 
+import { ColorDot } from "~/components/color-dot";
 import { ConfigurationActions } from "~/components/configuration-actions";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "~/components/ui/breadcrumb";
 import { useConfigurationStore } from "~/store/useConfigurationStore";
@@ -16,15 +17,7 @@ export function PageBreadcrumb() {
 							<div className="flex gap-2 items-center">
 								{configuration && (
 									<>
-										<div
-											style={{
-												backgroundColor: configuration.colorCode,
-												width: 15,
-												height: 15,
-												borderRadius: "50%",
-												display: "inline-block",
-											}}
-										></div>
+										<ColorDot value={configuration.colorCode} />
 
 										<p className="font-bold">{configuration.name}</p>
 									</>
