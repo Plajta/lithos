@@ -128,9 +128,9 @@ export function NewConfigurationPopover() {
 								)}
 							/>
 
-							<div className="flex justify-end">
-								<Button type="submit">Vytvořit</Button>
-							</div>
+							<Button type="submit" variant="outline" className="w-full">
+								Vytvořit
+							</Button>
 						</form>
 					</Form>
 				</PopoverContent>

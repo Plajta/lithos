@@ -99,9 +99,9 @@ export function EditConfigurationPopover() {
 							)}
 						/>
 
-						<div className="flex justify-end">
-							<Button type="submit">Uložit</Button>
-						</div>
+						<Button type="submit" variant="outline" className="w-full">
+							Upravit
+						</Button>
 					</form>
 				</Form>
 			</PopoverContent>
