@@ -40,7 +40,7 @@ export async function generatePdf({ configuration }: { configuration: Configurat
 
 	const matrix = arrayToMatrix(configuration.buttons, 4, 4);
 
-	const fontBytes = await fetch("/lithos/fonts/Roboto-Regular.ttf");
+	const fontBytes = await fetch("/fonts/Roboto-Regular.ttf");
 
 	doc.registerFont("Roboto-Regular", await fontBytes.arrayBuffer());
 
