@@ -72,7 +72,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 							<Input
 								className="text-lg p-0 m-0"
 								variant="ghost"
-								placeholder={`Text tlačítka ${id + 1}`}
+								placeholder={`Text tlačítka ${id}`}
 								value={label ?? ""}
 								onFocus={() => previousValue.current === label}
 								onKeyDown={(e: any) => {

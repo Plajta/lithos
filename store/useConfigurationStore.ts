@@ -37,7 +37,7 @@ interface Manifest {
 	version: number;
 	name: string;
 	colorCode: string;
-	buttons: { label: string }[];
+	buttons: { label: string | null }[];
 }
 
 interface ConfigurationInfo {
@@ -76,7 +76,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				name,
 				colorCode,
 				buttons: Array.from({ length: type === "sisyphus" ? 16 : 9 }).map((_, index) => ({
-					id: index,
+					id: index + 1,
 					label: null,
 					imageUrl: null,
 					audioUrl: null,
@@ -115,38 +115,35 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 
 		const manifest = JSON.parse(await manifestFile.async("string")) as Manifest;
 
-		const images = zipContent
-			.filter((path) => path.startsWith(`images`) && path.endsWith(".png"))
-			.sort((a, b) => +a.name.split("/").pop()?.split(".")[0]! - +b.name.split("/").pop()?.split(".")[0]!);
-		const audio = zipContent
-			.filter((path) => path.startsWith(`audio`) && path.endsWith(".wav"))
-			.sort((a, b) => +a.name.split("/").pop()?.split(".")[0]! - +b.name.split("/").pop()?.split(".")[0]!);
-
-		if (images.length === 0 || audio.length === 0) {
-			toast.error("Nelze načíst nahranou konfiguraci!");
-			return;
-		}
-
 		let size = 0;
 
-		const buttons: Button[] = [];
+		const rawButtons: Button[] = [
+			...manifest.buttons.map((button, index) => ({ ...button, id: index + 1, imageUrl: null, audioUrl: null })),
+		];
 
-		for (const [index, button] of manifest.buttons.entries()) {
-			const buttonImage = await images[index].async("blob");
-			const buttonAudio = await audio[index].async("blob");
+		const buttons = await Promise.all(
+			rawButtons.map(async (button) => {
+				const buttonImage = zipContent.file(`images/${button.id}.png`);
+				const buttonAudio = zipContent.file(`audio/${button.id}.wav`);
 
-			size += buttonImage.size;
-			size += buttonAudio.size;
+				// tlacitko je prazdne - dulezite pro zachovani spravnych pozic tlacitek
+				if (!buttonImage || !buttonAudio) {
+					return button;
+				}
 
-			if (!buttonImage || !buttonAudio) continue;
+				const imageBlob = await buttonImage.async("blob");
+				const audioBlob = await buttonAudio.async("blob");
 
-			buttons.push({
-				id: index,
-				label: button.label,
-				imageUrl: URL.createObjectURL(buttonImage),
-				audioUrl: URL.createObjectURL(buttonAudio),
-			});
-		}
+				size += imageBlob.size;
+				size += audioBlob.size;
+
+				return {
+					...button,
+					imageUrl: URL.createObjectURL(imageBlob),
+					audioUrl: URL.createObjectURL(audioBlob),
+				};
+			})
+		);
 
 		set((state) => ({
 			configuration: {
@@ -170,9 +167,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			version: 1,
 			name: configuration.name,
 			colorCode: configuration.colorCode,
-			buttons: configuration.buttons
-				.filter((button) => button.label !== null && button.imageUrl !== null && button.audioUrl !== null)
-				.map(({ label }) => ({ label } as { label: string })),
+			buttons: configuration.buttons.map(({ label }) => ({ label })),
 		} satisfies Manifest;
 
 		zip.file("manifest.json", JSON.stringify(manifest, null, 4));
@@ -185,8 +180,8 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
 			const imageUrl = await fetch(button.imageUrl).then((r) => r.blob());
 
-			zip.file(`audio/${Number(index + 1)}.wav`, audioBlob);
-			zip.file(`images/${Number(index + 1)}.png`, imageUrl);
+			zip.file(`audio/${Number(button.id)}.wav`, audioBlob);
+			zip.file(`images/${Number(button.id)}.png`, imageUrl);
 
 			const content = await zip.generateAsync({ type: "blob" });
 
@@ -212,7 +207,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 
 		return result;
 	},
-	uploadButtonImage: (index, image) => {
+	uploadButtonImage: (id, image) => {
 		const { configuration } = get();
 
 		if (!configuration) {
@@ -226,7 +221,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					name: state.configuration!.name,
 					colorCode: state.configuration!.colorCode,
 					buttons: state.configuration!.buttons.map((button, buttonIndex) => {
-						if (buttonIndex === index) {
+						if (buttonIndex === id - 1) {
 							return { ...button, imageUrl: null };
 						} else {
 							return button;
@@ -258,7 +253,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					colorCode: state.configuration!.colorCode,
 					size: state.configuration!.size + image.size,
 					buttons: state.configuration!.buttons.map((button, buttonIndex) => {
-						if (buttonIndex === index) {
+						if (buttonIndex === id - 1) {
 							return { ...button, imageUrl: canvas.toDataURL("image/png") };
 						} else {
 							return button;
@@ -270,7 +265,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 
 		img.src = URL.createObjectURL(image);
 	},
-	uploadButtonAudio: async (index, audio) => {
+	uploadButtonAudio: async (id, audio) => {
 		const { configuration } = get();
 
 		if (!configuration) {
@@ -284,7 +279,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					name: configuration.name,
 					colorCode: configuration.colorCode,
 					buttons: configuration.buttons.map((button, buttonIndex) => {
-						if (buttonIndex === index) {
+						if (buttonIndex === id - 1) {
 							return {
 								...button,
 								audioUrl: null,
@@ -350,7 +345,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					colorCode: configuration.colorCode,
 					size: configuration.size + audio.size,
 					buttons: configuration.buttons.map((button, buttonIndex) => {
-						if (buttonIndex === index) {
+						if (buttonIndex === id - 1) {
 							return {
 								...button,
 								audioUrl: URL.createObjectURL(new Blob([view], { type: "audio/wav" })),
@@ -367,7 +362,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			return;
 		}
 	},
-	updateButtonLabel: (index, label) => {
+	updateButtonLabel: (id, label) => {
 		set((state) => {
 			const currentConfig = state.configuration!;
 
@@ -377,7 +372,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					colorCode: currentConfig.colorCode,
 					size: currentConfig.size,
 					buttons: currentConfig.buttons.map((button, buttonIndex) => {
-						if (buttonIndex === index) {
+						if (buttonIndex === id - 1) {
 							return { ...button, label };
 						} else {
 							return button;
