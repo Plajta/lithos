@@ -20,6 +20,7 @@ interface FileSystemItem {
 interface CommandResponse {
 	info: {
 		type: ProtocolType;
+		mode: (typeof MODE)[keyof typeof MODE];
 		deviceName: string;
 		gitCommitSha: string;
 		version: string;
@@ -73,6 +74,11 @@ const COMMANDS = {
 	PLAY: "play",
 	PULL: "pull",
 };
+
+export const MODE = {
+	PROD: "prod",
+	DEBUG: "debug",
+} as const;
 
 type Response<T> = Promise<{ success: boolean; data: T | string }>;
 
@@ -173,6 +179,10 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function info(): Response<CommandResponse["info"]> {
+		const welcomeMessage = await readLine();
+
+		const mode = welcomeMessage && welcomeMessage.includes("DEBUG") ? MODE.DEBUG : MODE.PROD;
+
 		await sendCommand(COMMANDS.INFO);
 		const response = await readLine();
 
@@ -193,6 +203,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			success: true,
 			data: {
 				type: type as ProtocolType,
+				mode,
 				deviceName,
 				gitCommitSha,
 				version,
