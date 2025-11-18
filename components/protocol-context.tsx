@@ -185,6 +185,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function info(): Response<CommandResponse["info"]> {
+		/*
 		const mode = await (async function () {
 		    if (protocolInfo) {
 		        return protocolInfo.mode;
@@ -204,6 +205,9 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		
 		    return MODE.PROD;
 		})();
+		*/
+
+		const mode = MODE.PROD;
 		
 		await sendCommand(COMMANDS.INFO);
 		const response = await readLine();
