@@ -182,21 +182,21 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 
 			zip.file(`audio/${Number(button.id)}.wav`, audioBlob);
 			zip.file(`images/${Number(button.id)}.png`, imageUrl);
-
-			const content = await zip.generateAsync({ type: "blob" });
-
-			const url = URL.createObjectURL(content);
-			const a = document.createElement("a");
-
-			a.href = url;
-			a.download = `${configuration.name}_lithos.zip`;
-			document.body.appendChild(a);
-
-			a.click();
-
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
 		}
+
+		const content = await zip.generateAsync({ type: "blob" });
+
+		const url = URL.createObjectURL(content);
+		const a = document.createElement("a");
+
+		a.href = url;
+		a.download = `${configuration.name}_lithos.zip`;
+		document.body.appendChild(a);
+
+		a.click();
+
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
 	},
 	getColorLookupTable: () => {
 		let result = "";
