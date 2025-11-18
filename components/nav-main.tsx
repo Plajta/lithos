@@ -16,6 +16,7 @@ import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/component
 import { ChevronRight } from "lucide-react";
 import { Separator } from "~/components/ui/separator";
 import { ColorDot } from "~/components/color-dot";
+import { COLOR_LOOKUP_TABLE } from "~/store/useConfigurationStore";
 
 export function NavMain() {
 	const { connect, protocol } = useProtocol();
@@ -45,11 +46,16 @@ export function NavMain() {
 					<p className="text-sm font-semibold">Nahrané konfigurace</p>
 
 					{protocol.connected.info.loadedConfigurations.map((item) => (
-						<Collapsible key={item.uploadedAt} asChild>
+						<Collapsible key={item.uploadedAt as any} asChild>
 							<SidebarMenuItem>
 								<SidebarMenuButton asChild tooltip={item.name}>
 									<span>
-										<ColorDot size={10} value={`#${item.colorCode}`} />
+										<ColorDot
+											size={10}
+											value={`#${
+												COLOR_LOOKUP_TABLE[item.colorCode as keyof typeof COLOR_LOOKUP_TABLE]
+											}`}
+										/>
 
 										{item.name}
 									</span>
