@@ -68,13 +68,7 @@ export function ConfigurationActions() {
 				const col = (i % 4) + 1;
 
 				const color = configuration.colorCode.toLowerCase().substring(0, 1);
-				let fileName;
-
-				if (row === 0) {
-					fileName = `${color}_${col}.wav`;
-				} else {
-					fileName = `${color}_${row}${col}.wav`;
-				}
+				const fileName = row === 0 ? `${color}_${col}.wav` : `${color}_${row}${col}.wav`;
 
 				const response = await protocol.commands.push(audioBlob, fileName, {
 					setBytesLeft,
