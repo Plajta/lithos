@@ -52,7 +52,9 @@ export function ConfigurationActions() {
 
 			setLeftToUpload(totalItemsToUpload);
 
-			for (const [index, button] of Object.entries(configuration.buttons)) {
+			for (const [indexStr, button] of Object.entries(configuration.buttons)) {
+				const i = Number(indexStr);
+
 				if (!button.audioUrl) {
 					continue;
 				}
@@ -62,13 +64,21 @@ export function ConfigurationActions() {
 				setBytesLeft(audioBlob.size);
 				setProgressStep(100 / audioBlob.size);
 
-				const response = await protocol.commands.push(
-					audioBlob,
-					`${configuration.colorCode.toLowerCase()}_${index}.wav`,
-					{
-						setBytesLeft,
-					}
-				);
+				const row = Math.floor(i / 4);
+				const col = (i % 4) + 1;
+
+				const color = configuration.colorCode.toLowerCase().substring(0, 1);
+				let fileName;
+
+				if (row === 0) {
+					fileName = `${color}_${col}.wav`;
+				} else {
+					fileName = `${color}_${row}${col}.wav`;
+				}
+
+				const response = await protocol.commands.push(audioBlob, fileName, {
+					setBytesLeft,
+				});
 
 				if (response.success) {
 					const leftStepCount = totalItemsToUpload - 1;
