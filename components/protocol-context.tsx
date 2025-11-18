@@ -186,13 +186,23 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 
 	async function info(): Response<CommandResponse["info"]> {
 		const mode = await (async function () {
-			if (protocolInfo) {
-				return protocolInfo.mode;
-			}
+		    if (protocolInfo) {
+		        return protocolInfo.mode;
+		    }
+		
+		    const readPromise = readLine();
 
-			const welcomeMessage = await readLine();
-
-			return welcomeMessage && welcomeMessage.includes("DEBUG") ? MODE.DEBUG : MODE.PROD;
+		    const timeoutPromise = new Promise(resolve =>
+		        setTimeout(() => resolve(null), 300)
+		    );
+		
+		    const welcomeMessage = await Promise.race([readPromise, timeoutPromise]);
+		
+		    if (welcomeMessage && welcomeMessage.includes("DEBUG")) {
+		        return MODE.DEBUG;
+		    }
+		
+		    return MODE.PROD;
 		})();
 
 		await sendCommand(COMMANDS.INFO);
