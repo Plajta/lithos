@@ -45,7 +45,7 @@ export function NavMain() {
 					<p className="text-sm font-semibold">Nahrané konfigurace</p>
 
 					{protocol.connected.info.loadedConfigurations.map((item) => (
-						<Collapsible key={item.name} asChild>
+						<Collapsible key={item.uploadedAt} asChild>
 							<SidebarMenuItem>
 								<SidebarMenuButton asChild tooltip={item.name}>
 									<span>

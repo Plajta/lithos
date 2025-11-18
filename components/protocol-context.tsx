@@ -91,13 +91,18 @@ interface ProtocolContextType {
 			push: (
 				fileBlob: Blob,
 				dest: string,
-				setBytesLeft?: Dispatch<SetStateAction<number>>
+				options:
+					| {
+							setBytesLeft?: Dispatch<SetStateAction<number>>;
+					  }
+					| undefined
 			) => Response<CommandResponse["push"]>;
 			ls: () => Response<CommandResponse["ls"]>;
 			rm: (path: string) => Response<CommandResponse["rm"]>;
 			mv: (path: string, dest: string) => Response<CommandResponse["mv"]>;
 			play: (path: string) => Response<CommandResponse["play"]>;
 			pull: (path: string) => Response<CommandResponse["pull"]>;
+			refreshInfo: () => Promise<void>;
 		};
 	};
 }
@@ -163,6 +168,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 
 	async function sendCommand(cmd: string) {
 		if (!writer) return;
+
 		const text = typeof cmd === "string" ? cmd : new TextDecoder().decode(cmd);
 		const encoded = encoder.encode(text + String.fromCharCode(EOT));
 		await writer.write(encoded);
@@ -179,9 +185,15 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function info(): Response<CommandResponse["info"]> {
-		const welcomeMessage = await readLine();
+		const mode = await (async function () {
+			if (protocolInfo) {
+				return protocolInfo.mode;
+			}
 
-		const mode = welcomeMessage && welcomeMessage.includes("DEBUG") ? MODE.DEBUG : MODE.PROD;
+			const welcomeMessage = await readLine();
+
+			return welcomeMessage && welcomeMessage.includes("DEBUG") ? MODE.DEBUG : MODE.PROD;
+		})();
 
 		await sendCommand(COMMANDS.INFO);
 		const response = await readLine();
@@ -220,7 +232,11 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	async function push(
 		fileBlob: Blob,
 		dest: string,
-		setBytesLeft?: Dispatch<SetStateAction<number>>
+		options:
+			| {
+					setBytesLeft?: Dispatch<SetStateAction<number>>;
+			  }
+			| undefined
 	): Response<CommandResponse["push"]> {
 		if (!writer) {
 			return {
@@ -242,8 +258,6 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 
 			if (response) {
 				if (!response.startsWith(DEVICE_RESPONSE.ACK)) {
-					console.log(response);
-
 					return {
 						success: false,
 						data: `Device returned unxpected response. Error returned from the device: ${response}`,
@@ -254,8 +268,8 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 				await writer.write(chunk);
 				sent += chunk.length;
 
-				if (setBytesLeft) {
-					setBytesLeft((prev) => prev - chunk.length);
+				if (options && options.setBytesLeft) {
+					options.setBytesLeft((prev) => prev - chunk.length);
 				}
 			}
 		}
@@ -272,7 +286,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		if (!finalResponse.startsWith(DEVICE_RESPONSE.ACK)) {
 			return {
 				success: false,
-				data: `Writing data to device failed. Error returned from the device: ${finalResponse}`,
+				data: `Writing data to device failed. Error returned from the device: ${finalResponse} ${dest} ${checksum}`,
 			};
 		}
 
@@ -407,41 +421,43 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		if (!response || !response.startsWith(DEVICE_RESPONSE.ACK)) {
 			return {
 				success: false,
-				data: `Device returned unxpected response. Pull failed. - ${response}`,
+				data: `Device returned unexpected response. Pull failed. - ${response}`,
 			};
 		}
 
 		const parsedResponse = response.split(" ");
-
 		const size = parseInt(parsedResponse[1], 10);
 		const expectedChecksum = parseInt(parsedResponse[2], 10);
 
-		const chunks: Uint8Array[] = [];
-		let received = 0;
+		const fullData = new Uint8Array(size);
+		let totalReceived = 0;
 
-		while (received < size) {
+		while (totalReceived < size) {
 			await sendCommand(DEVICE_RESPONSE.ACK);
 
-			const chunkSize = Math.min(CHUNK_SIZE, size - received);
-			const buffer = new Uint8Array(chunkSize);
-			const { value, done } = await reader.read(buffer);
+			const bytesExpectedInThisChunk = Math.min(CHUNK_SIZE, size - totalReceived);
 
-			if (done || !value || value.byteLength === 0) {
-				return {
-					success: false,
-					data: `Failed to read expected data chunk. Received ${received}/${size} bytes.`,
-				};
+			let bytesReadForCurrentChunk = 0;
+
+			while (bytesReadForCurrentChunk < bytesExpectedInThisChunk) {
+				const buffer = new Uint8Array(CHUNK_SIZE);
+				const { value, done } = await reader.read(buffer);
+
+				if (done) {
+					return {
+						success: false,
+						data: `Stream closed unexpectedly after ${totalReceived} bytes.`,
+					};
+				}
+
+				if (value) {
+					fullData.set(value, totalReceived + bytesReadForCurrentChunk);
+
+					bytesReadForCurrentChunk += value.byteLength;
+				}
 			}
 
-			chunks.push(value.subarray(0, value.byteLength));
-			received += value.byteLength;
-		}
-
-		const fullData = new Uint8Array(size);
-		let offset = 0;
-		for (const chunk of chunks) {
-			fullData.set(chunk, offset);
-			offset += chunk.length;
+			totalReceived += bytesExpectedInThisChunk;
 		}
 
 		const actualChecksum = crc32(fullData);
@@ -449,14 +465,22 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		if (actualChecksum !== expectedChecksum) {
 			return {
 				success: false,
-
 				data: `Checksum mismatch! Expected ${expectedChecksum}, got ${actualChecksum}`,
+			};
+		}
+
+		const blob = new Blob([fullData]);
+
+		if (blob.size === 0) {
+			return {
+				success: false,
+				data: `File has 0 bytes`,
 			};
 		}
 
 		return {
 			success: true,
-			data: new Blob([fullData]),
+			data: blob,
 		};
 	}
 
@@ -466,7 +490,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 				connect,
 				protocol: {
 					connected: protocolInfo ? { info: protocolInfo } : null,
-					commands: { info, push, ls, rm, mv, play, pull },
+					commands: { info, push, ls, rm, mv, play, pull, refreshInfo },
 				},
 			}}
 		>

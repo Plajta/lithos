@@ -15,8 +15,7 @@ export function ConfigurationActions() {
 	const [bytesLeft, setBytesLeft] = useState<number>(0);
 	const [progressStep, setProgressStep] = useState<number>(0);
 
-	const { configuration, getColorLookupTable, saveConfiguration, generateConfigurationPdf, loadConfiguration } =
-		useConfigurationStore();
+	const { configuration, saveConfiguration, generateConfigurationPdf, loadConfiguration } = useConfigurationStore();
 	const { protocol } = useProtocol();
 
 	const uploadInProgress = useMemo(
@@ -31,33 +30,21 @@ export function ConfigurationActions() {
 
 	const uploadConfiguration = async () => {
 		if (configuration) {
-			{
-				const colorLookupTable = getColorLookupTable();
+			const contents = [
+				JSON.stringify([
+					...protocol.connected!.info.loadedConfigurations.filter(
+						(conf) => conf.colorCode !== configuration.colorCode
+					),
+					{
+						colorCode: configuration.colorCode,
+						name: configuration.name,
+						uploadedAt: new Date().toISOString(),
+						size: configuration.size,
+					},
+				]),
+			];
 
-				const response = await protocol.commands.push(new Blob([colorLookupTable]), "color_lookup_table");
-
-				if (!response.success) {
-					toast.error(response.data as string);
-					return;
-				}
-			}
-
-			{
-				await protocol.commands.push(
-					new Blob([
-						JSON.stringify([
-							...protocol.connected!.info.loadedConfigurations,
-							{
-								colorCode: configuration.colorCode,
-								name: configuration.name,
-								uploadedAt: new Date().toISOString(),
-								size: configuration.size,
-							},
-						]),
-					]),
-					"conf_info"
-				);
-			}
+			await protocol.commands.push(new Blob(contents), "conf_info", {});
 
 			if (configuration.buttons.length === 0) {
 				return;
@@ -77,21 +64,23 @@ export function ConfigurationActions() {
 
 				const response = await protocol.commands.push(
 					audioBlob,
-					`${configuration.colorCode}_${index}.wav`,
-					setBytesLeft
+					`${configuration.colorCode.toLowerCase()}_${index}.wav`,
+					{
+						setBytesLeft,
+					}
 				);
 
 				if (response.success) {
-					const leftStepCount = configuration.buttons.length - +index - 1;
+					const leftStepCount = totalItemsToUpload - 1;
 
 					setBytesLeft(0);
 					setProgressStep(0);
 
+					setLeftToUpload(leftStepCount === 0 ? null : leftStepCount);
+
 					if (leftStepCount === 0) {
 						toast.success("Konfigurace byla úspěšně nahrána!");
 					}
-
-					setLeftToUpload(leftStepCount === 0 ? null : leftStepCount);
 				} else {
 					toast.error(response.data as string);
 					break;

@@ -92,7 +92,7 @@ export function VoiceRecorder({ index }: { index: number }) {
 						id="audioInput"
 						name="image"
 						type="file"
-						accept="audio/wav"
+						accept=".wav"
 						hidden
 						onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
 							const file = event.target.files?.[0];

@@ -14,7 +14,7 @@ import { COLOR_LOOKUP_TABLE, Colors, ConfigurationTypes, useConfigurationStore }
 
 const FormSchema = z.object({
 	name: z.string().min(3, {
-		message: "Konifugrace musí mít alespoň 3 písmena.",
+		message: "Konfigurace musí mít alespoň 3 písmena.",
 	}),
 	type: z.enum(ConfigurationTypes),
 	colorCode: z.enum(Colors),

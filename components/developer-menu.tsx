@@ -125,7 +125,8 @@ export function DeveloperMenu() {
 
 											const response = await protocol.commands.push(
 												pushFileArguments.blob,
-												pushFileArguments.dest
+												pushFileArguments.dest,
+												{}
 											);
 
 											setOutput((prev) => [
