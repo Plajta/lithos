@@ -18,6 +18,7 @@ import { Separator } from "~/components/ui/separator";
 import { ColorDot } from "~/components/color-dot";
 import { COLOR_LOOKUP_TABLE } from "~/store/useConfigurationStore";
 import { toast } from "sonner";
+import { ConfirmationButton } from "~/components/confirmation-button";
 
 export function NavMain() {
 	const { connect, protocol } = useProtocol();
@@ -112,14 +113,15 @@ export function NavMain() {
 									</SidebarMenuSub>
 
 									<SidebarMenuSub className="text-sm">
-										<Button
-											size="sm"
-											variant="outline"
-											className="text-sm h-6"
-											onClick={async () => await deleteConfiguration(item.colorCode)}
+										<ConfirmationButton
+											disclaimer="Opravdu chcete smazat konfiguraci?"
+											side="right"
+											action={async () => await deleteConfiguration(item.colorCode)}
 										>
-											Smazat
-										</Button>
+											<Button size="sm" variant="outline" className="text-sm h-6">
+												Smazat
+											</Button>
+										</ConfirmationButton>
 									</SidebarMenuSub>
 								</CollapsibleContent>
 							</SidebarMenuItem>
