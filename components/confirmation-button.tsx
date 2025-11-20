@@ -6,10 +6,11 @@ interface ConfirmationButtonProps {
 	disclaimer: string;
 	action: () => Promise<void>;
 	side?: PopoverContentProps["side"];
+	destructive?: boolean;
 	children: React.ReactNode;
 }
 
-export function ConfirmationButton({ disclaimer, action, side, children }: ConfirmationButtonProps) {
+export function ConfirmationButton({ disclaimer, action, side, destructive, children }: ConfirmationButtonProps) {
 	return (
 		<Popover>
 			<PopoverTrigger asChild>{children}</PopoverTrigger>
@@ -25,7 +26,12 @@ export function ConfirmationButton({ disclaimer, action, side, children }: Confi
 							</Button>
 						</PopoverClose>
 
-						<Button variant="destructive" className="flex-1" size="sm" onClick={async () => await action()}>
+						<Button
+							variant={destructive ? "destructive" : "outline"}
+							className="flex-1"
+							size="sm"
+							onClick={async () => await action()}
+						>
 							Potvrdit
 						</Button>
 					</div>
