@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, Dispatch, SetStateAction, useContext, useEffect, useState } from "react";
+import { useModeStore } from "~/store/use-mode-store";
 
 const EOT = 0x04;
 const CHUNK_SIZE = 1024;
@@ -20,7 +21,6 @@ interface FileSystemItem {
 interface CommandResponse {
 	info: {
 		type: ProtocolType;
-		mode: (typeof MODE)[keyof typeof MODE];
 		deviceName: string;
 		gitCommitSha: string;
 		version: string;
@@ -118,6 +118,8 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	const [reader, setReader] = useState<ReadableStreamBYOBReader | null>(null);
 	const [protocolInfo, setProtocolInfo] = useState<CommandResponse["info"] | null>(null);
 
+	const { mode } = useModeStore();
+
 	async function connect() {
 		if ("serial" in navigator) {
 			const port = await navigator.serial.requestPort({
@@ -185,30 +187,12 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function info(): Response<CommandResponse["info"]> {
-		/*
-		const mode = await (async function () {
-		    if (protocolInfo) {
-		        return protocolInfo.mode;
-		    }
-		
-		    const readPromise = readLine();
-		
-		    const timeoutPromise = new Promise<string | null>(resolve =>
-		        setTimeout(() => resolve(null), 300)
-		    );
-		
-		    const welcomeMessage = await Promise.race([readPromise, timeoutPromise]);
-		
-		    if (typeof welcomeMessage === "string" && welcomeMessage.includes("DEBUG")) {
-		        return MODE.DEBUG;
-		    }
-		
-		    return MODE.PROD;
-		})();
-		*/
+		if (!protocolInfo && mode === "DEBUG") {
+			const line = await readLine();
 
-		const mode = MODE.PROD;
-		
+			console.log(line);
+		}
+
 		await sendCommand(COMMANDS.INFO);
 		const response = await readLine();
 
@@ -229,7 +213,6 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			success: true,
 			data: {
 				type: type as ProtocolType,
-				mode,
 				deviceName,
 				gitCommitSha,
 				version,
