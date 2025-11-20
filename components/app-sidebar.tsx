@@ -3,13 +3,11 @@
 import { NavMain } from "~/components/nav-main";
 import { Sidebar, SidebarHeader, SidebarRail } from "~/components/ui/sidebar";
 import { Separator } from "~/components/ui/separator";
-import { MODE, useProtocol } from "~/components/protocol-context";
 import { useModeStore } from "~/store/use-mode-store";
 import { Checkbox } from "~/components/ui/checkbox";
 import { Label } from "@radix-ui/react-label";
 
-export function AppSidebar({ sheets }: { sheets: any[] }) {
-	const { protocol } = useProtocol();
+export function AppSidebar() {
 	const { mode, setDebug, setProd } = useModeStore();
 
 	return (
