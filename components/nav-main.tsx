@@ -116,6 +116,7 @@ export function NavMain() {
 										<ConfirmationButton
 											disclaimer="Opravdu chcete smazat konfiguraci?"
 											side="right"
+											destructive
 											action={async () => await deleteConfiguration(item.colorCode)}
 										>
 											<Button size="sm" variant="outline" className="text-sm h-6">
