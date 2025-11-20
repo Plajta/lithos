@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Progress } from "~/components/ui/progress";
 import { Popover, PopoverContent, PopoverAnchor } from "~/components/ui/popover";
 import { NewConfigurationPopover } from "~/components/new-configuration-popover";
+import { ConfirmationButton } from "~/components/confirmation-button";
 
 export function ConfigurationActions() {
 	const [leftToUpload, setLeftToUpload] = useState<number | null>(null);
@@ -26,6 +27,14 @@ export function ConfigurationActions() {
 	const totalItemsToUpload = useMemo(
 		() => (configuration ? configuration.buttons.filter((button) => !!button.audioUrl).length : 0),
 		[configuration]
+	);
+
+	const duplicateConfiguration = useMemo(
+		() =>
+			!!configuration &&
+			!!protocol.connected &&
+			protocol.connected.info.loadedConfigurations.some((item) => item.colorCode === configuration.colorCode),
+		[protocol, configuration]
 	);
 
 	const uploadConfiguration = async () => {
@@ -121,13 +130,27 @@ export function ConfigurationActions() {
 
 			<Popover open={uploadInProgress}>
 				<PopoverAnchor>
-					<Button
-						variant="outline"
-						disabled={uploadInProgress || !protocol.connected || !configuration}
-						onClick={async () => await uploadConfiguration()}
-					>
-						<p>Nahrát kartu do zařízení</p>
-					</Button>
+					{duplicateConfiguration ? (
+						<ConfirmationButton
+							disclaimer="Opravdu chcete přepsat aktuálně nahranou kartu?"
+							action={async () => await uploadConfiguration()}
+						>
+							<Button
+								variant="outline"
+								disabled={uploadInProgress || !protocol.connected || !configuration}
+							>
+								<p>Nahrát kartu do zařízení</p>
+							</Button>
+						</ConfirmationButton>
+					) : (
+						<Button
+							variant="outline"
+							disabled={uploadInProgress || !protocol.connected || !configuration}
+							onClick={async () => await uploadConfiguration()}
+						>
+							<p>Nahrát kartu do zařízení</p>
+						</Button>
+					)}
 				</PopoverAnchor>
 
 				<PopoverContent className="p-2 w-[250px] flex flex-col justify-between items-center gap-1">
