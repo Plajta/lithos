@@ -12,7 +12,7 @@ const DEVICE_RESPONSE = {
 
 type ProtocolType = "bootloader" | "sisyphus";
 
-interface FileSystemItem {
+export interface FileSystemItem {
 	name: string;
 	type: "folder" | "directory";
 	size: number | null;

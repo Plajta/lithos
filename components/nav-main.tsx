@@ -10,16 +10,44 @@ import {
 	SidebarMenuItem,
 	SidebarMenuSub,
 } from "~/components/ui/sidebar";
-import { useProtocol } from "~/components/protocol-context";
+import { FileSystemItem, useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
 import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
 import { Separator } from "~/components/ui/separator";
 import { ColorDot } from "~/components/color-dot";
 import { COLOR_LOOKUP_TABLE } from "~/store/useConfigurationStore";
+import { toast } from "sonner";
 
 export function NavMain() {
 	const { connect, protocol } = useProtocol();
+
+	async function deleteConfiguration(color: string) {
+		const { success, data } = await protocol.commands.ls();
+
+		if (!success) {
+			toast.error(data as string);
+			return;
+		}
+
+		const fileMask = color.toLowerCase().substring(0, 1);
+
+		for (const file of data as FileSystemItem[]) {
+			if (fileMask !== file.name.substring(0, 1)) {
+				continue;
+			}
+
+			await protocol.commands.rm(file.name);
+		}
+
+		const contents = [
+			JSON.stringify([
+				...protocol.connected!.info.loadedConfigurations.filter((conf) => conf.colorCode !== color),
+			]),
+		];
+
+		await protocol.commands.push(new Blob(contents), "conf_info", {});
+	}
 
 	return (
 		<SidebarGroup>
@@ -81,6 +109,17 @@ export function NavMain() {
 											<p>Velikost:</p>
 											{Math.round(item.size / 1000).toFixed(0)} Kb
 										</div>
+									</SidebarMenuSub>
+
+									<SidebarMenuSub className="text-sm">
+										<Button
+											size="sm"
+											variant="outline"
+											className="text-sm h-6"
+											onClick={async () => await deleteConfiguration(item.colorCode)}
+										>
+											Smazat
+										</Button>
 									</SidebarMenuSub>
 								</CollapsibleContent>
 							</SidebarMenuItem>
