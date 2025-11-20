@@ -48,6 +48,8 @@ export function NavMain() {
 		];
 
 		await protocol.commands.push(new Blob(contents), "conf_info", {});
+
+		toast.success("Konfigurace byla úspěšně smazána.");
 	}
 
 	return (
