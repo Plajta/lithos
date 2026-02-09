@@ -14,7 +14,7 @@ export function AppSidebar() {
 		<Sidebar className="border-r-0">
 			<SidebarHeader className="pl-0">
 				<div className="flex justify-between items-center">
-					<div className="flex flex-col pl-2">
+					<div className="flex gap-0 flex-col pl-2">
 						<span className="truncate font-bold text-xl">Plajta Lithos</span>
 
 						<p>Vývojářská verze</p>
