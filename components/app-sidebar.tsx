@@ -14,20 +14,22 @@ export function AppSidebar() {
 		<Sidebar className="border-r-0">
 			<SidebarHeader className="pl-0">
 				<div className="flex justify-between items-center">
-					<span className="pl-2 truncate font-bold text-xl">Plajta Lithos</span>
+					<div className="flex flex-col pl-2">
+						<span className="truncate font-bold text-xl">Plajta Lithos</span>
 
-					{process.env.NODE_ENV === "development" && (
-						<div className="flex items-center gap-1">
-							<Checkbox
-								id="mode"
-								checked={mode === "DEBUG"}
-								onCheckedChange={(state) => (state ? setDebug() : setProd())}
-							/>
-							<Label htmlFor="mode" className="text-sm">
-								Debug mode
-							</Label>
-						</div>
-					)}
+						<p>Vývojářská verze</p>
+					</div>
+
+					<div className="flex items-center gap-1">
+						<Checkbox
+							id="mode"
+							checked={mode === "DEBUG"}
+							onCheckedChange={(state) => (state ? setDebug() : setProd())}
+						/>
+						<Label htmlFor="mode" className="text-sm">
+							Debug mode
+						</Label>
+					</div>
 				</div>
 
 				<Separator />
