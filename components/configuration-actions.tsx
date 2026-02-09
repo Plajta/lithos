@@ -74,10 +74,14 @@ export function ConfigurationActions() {
 				setProgressStep(100 / audioBlob.size);
 
 				const row = Math.floor(i / 4);
-				const col = (i % 4) + 1;
+
+				const col = i % 4;
 
 				const color = configuration.colorCode.toLowerCase().substring(0, 1);
-				const fileName = row === 0 ? `${color}_${col}.wav` : `${color}_${row}${col}.wav`;
+
+				const fileName = `${color}_${row}_${col}.wav`;
+
+				console.log(fileName);
 
 				const response = await protocol.commands.push(audioBlob, fileName, {
 					setBytesLeft,

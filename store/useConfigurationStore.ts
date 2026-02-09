@@ -299,7 +299,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			const audioCtx = new AudioContext();
 			const decoded = await audioCtx.decodeAudioData(arrayBuffer);
 
-			const sampleRate = 44100;
+			const sampleRate = 22000;
 			const offlineCtx = new OfflineAudioContext(1, decoded.duration * sampleRate, sampleRate);
 			const source = offlineCtx.createBufferSource();
 			source.buffer = decoded;
