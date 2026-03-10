@@ -238,9 +238,22 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 
 		const img = new Image();
 		img.onload = () => {
+			const MAX = 1024;
+			let { naturalWidth: w, naturalHeight: h } = img;
+
+			if (w > MAX || h > MAX) {
+				if (w > h) {
+					h = Math.round((h / w) * MAX);
+					w = MAX;
+				} else {
+					w = Math.round((w / h) * MAX);
+					h = MAX;
+				}
+			}
+
 			const canvas = document.createElement("canvas");
-			canvas.width = img.naturalWidth;
-			canvas.height = img.naturalHeight;
+			canvas.width = w;
+			canvas.height = h;
 
 			const ctx = canvas.getContext("2d");
 
@@ -248,7 +261,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				throw new Error("ss");
 			}
 
-			ctx.drawImage(img, 0, 0);
+			ctx.drawImage(img, 0, 0, w, h);
 
 			set((state) => ({
 				configuration: {
