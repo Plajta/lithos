@@ -1,8 +1,10 @@
+import JSZip from "jszip";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
@@ -27,7 +29,9 @@ export function DeveloperMenu() {
 		dest: null,
 	});
 	const [playArguments, setPlayArguments] = useState<string | null>(null);
-	const [pullArguments, setPullArguments] = useState<string | null>(null);
+	const [pullFileList, setPullFileList] = useState<string[]>([]);
+	const [selectedPullFiles, setSelectedPullFiles] = useState<Set<string>>(new Set());
+	const [isPulling, setIsPulling] = useState(false);
 
 	const { connect, protocol } = useProtocol();
 
@@ -284,53 +288,104 @@ export function DeveloperMenu() {
 
 									<div className="col-span-1"></div>
 
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={async () => {
-											if (!pullArguments) {
-												toast.error("Požadované argumenty nejsou vyplňěny!");
-												return;
-											}
+									<div className="col-span-3 flex flex-col gap-2">
+										<div className="flex gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												onClick={async () => {
+													const response = await protocol.commands.ls();
+													if (response.success) {
+														const files = (response.data as { name: string }[]).map(
+															(f) => f.name,
+														);
+														setPullFileList(files);
+														setSelectedPullFiles(new Set(files));
+													} else {
+														toast.error("LS selhalo!");
+													}
+												}}
+											>
+												pull &mdash; načíst soubory
+											</Button>
 
-											const response = await protocol.commands.pull(pullArguments);
+											<Button
+												variant="outline"
+												size="sm"
+												disabled={selectedPullFiles.size === 0 || isPulling}
+												onClick={async () => {
+													setIsPulling(true);
+													try {
+														const zip = new JSZip();
+														for (const file of selectedPullFiles) {
+															const response = await protocol.commands.pull(file);
+															if (response.success) {
+																zip.file(file, response.data as Blob);
+																setOutput((prev) => [
+																	...prev,
+																	{ command: "PULL", line: `OK: ${file}` },
+																]);
+															} else {
+																setOutput((prev) => [
+																	...prev,
+																	{
+																		command: "PULL",
+																		line: `ERR: ${file} - ${JSON.stringify(response.data)}`,
+																	},
+																]);
+															}
+														}
+														const content = await zip.generateAsync({ type: "blob" });
+														const url = URL.createObjectURL(content);
+														const a = document.createElement("a");
+														a.href = url;
+														a.download = "pull.zip";
+														document.body.appendChild(a);
+														a.click();
+														document.body.removeChild(a);
+														URL.revokeObjectURL(url);
+													} finally {
+														setIsPulling(false);
+													}
+												}}
+											>
+												{isPulling
+													? "Stahování..."
+													: `Stáhnout jako ZIP (${selectedPullFiles.size})`}
+											</Button>
+										</div>
 
-											if (response.success) {
-												const blob = response.data as Blob;
-												const url = URL.createObjectURL(blob);
-												const a = document.createElement("a");
-												a.href = url;
-												a.download = pullArguments.split("/").pop() ?? "pull";
-												document.body.appendChild(a);
-												a.click();
-												document.body.removeChild(a);
-												URL.revokeObjectURL(url);
-												setOutput((prev) => [
-													...prev,
-													{
-														command: "PULL",
-														line: `Downloaded ${pullArguments} (${blob.size} bytes)`,
-													},
-												]);
-											} else {
-												setOutput((prev) => [
-													...prev,
-													{ command: "PULL", line: JSON.stringify(response.data) },
-												]);
-											}
-										}}
-									>
-										pull
-									</Button>
-
-									<Input
-										type="text"
-										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
-										placeholder="file path"
-										onChange={(e) => setPullArguments(e.target.value)}
-									/>
-
-									<div className="col-span-1"></div>
+										{pullFileList.length > 0 && (
+											<div className="border rounded-md p-2 flex flex-col gap-1 max-h-32 overflow-y-auto">
+												<div className="flex items-center gap-2 pb-1 border-b">
+													<Checkbox
+														checked={selectedPullFiles.size === pullFileList.length}
+														onCheckedChange={(checked) =>
+															setSelectedPullFiles(
+																checked ? new Set(pullFileList) : new Set(),
+															)
+														}
+													/>
+													<span className="text-xs text-muted-foreground">Všechny</span>
+												</div>
+												{pullFileList.map((file) => (
+													<div key={file} className="flex items-center gap-2">
+														<Checkbox
+															checked={selectedPullFiles.has(file)}
+															onCheckedChange={(checked) => {
+																setSelectedPullFiles((prev) => {
+																	const next = new Set(prev);
+																	checked ? next.add(file) : next.delete(file);
+																	return next;
+																});
+															}}
+														/>
+														<span className="text-xs font-mono">{file}</span>
+													</div>
+												))}
+											</div>
+										)}
+									</div>
 								</div>
 
 								<div className="grow flex flex-col text-sm gap-2">
