@@ -27,6 +27,7 @@ export function DeveloperMenu() {
 		dest: null,
 	});
 	const [playArguments, setPlayArguments] = useState<string | null>(null);
+	const [pullArguments, setPullArguments] = useState<string | null>(null);
 
 	const { connect, protocol } = useProtocol();
 
@@ -126,7 +127,7 @@ export function DeveloperMenu() {
 											const response = await protocol.commands.push(
 												pushFileArguments.blob,
 												pushFileArguments.dest,
-												{}
+												{},
 											);
 
 											setOutput((prev) => [
@@ -227,7 +228,7 @@ export function DeveloperMenu() {
 
 											const response = await protocol.commands.mv(
 												mvArguemnts.path,
-												mvArguemnts.dest
+												mvArguemnts.dest,
 											);
 
 											setOutput((prev) => [
@@ -279,6 +280,54 @@ export function DeveloperMenu() {
 										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
 										placeholder="file path"
 										onChange={(e) => setPlayArguments(e.target.value)}
+									/>
+
+									<div className="col-span-1"></div>
+
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={async () => {
+											if (!pullArguments) {
+												toast.error("Požadované argumenty nejsou vyplňěny!");
+												return;
+											}
+
+											const response = await protocol.commands.pull(pullArguments);
+
+											if (response.success) {
+												const blob = response.data as Blob;
+												const url = URL.createObjectURL(blob);
+												const a = document.createElement("a");
+												a.href = url;
+												a.download = pullArguments.split("/").pop() ?? "pull";
+												document.body.appendChild(a);
+												a.click();
+												document.body.removeChild(a);
+												URL.revokeObjectURL(url);
+												setOutput((prev) => [
+													...prev,
+													{
+														command: "PULL",
+														line: `Downloaded ${pullArguments} (${blob.size} bytes)`,
+													},
+												]);
+											} else {
+												setOutput((prev) => [
+													...prev,
+													{ command: "PULL", line: JSON.stringify(response.data) },
+												]);
+											}
+										}}
+									>
+										pull
+									</Button>
+
+									<Input
+										type="text"
+										className="h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5"
+										placeholder="file path"
+										onChange={(e) => setPullArguments(e.target.value)}
 									/>
 
 									<div className="col-span-1"></div>
