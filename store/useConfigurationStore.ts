@@ -172,15 +172,19 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		zip.file("manifest.json", JSON.stringify(manifest, null, 4));
 
 		for (const [index, button] of Object.entries(configuration.buttons)) {
-			if (!button.audioUrl || !button.imageUrl || !button.label) {
+			if (!button.audioUrl && !button.imageUrl && !button.label) {
 				continue;
 			}
 
-			const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
-			const imageUrl = await fetch(button.imageUrl).then((r) => r.blob());
+			if (button.audioUrl) {
+				const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
+				zip.file(`audio/${Number(button.id)}.wav`, audioBlob);
+			}
 
-			zip.file(`audio/${Number(button.id)}.wav`, audioBlob);
-			zip.file(`images/${Number(button.id)}.png`, imageUrl);
+			if (button.imageUrl) {
+				const imageBlob = await fetch(button.imageUrl).then((r) => r.blob());
+				zip.file(`images/${Number(button.id)}.png`, imageBlob);
+			}
 		}
 
 		const content = await zip.generateAsync({ type: "blob" });
