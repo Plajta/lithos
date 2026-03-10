@@ -58,28 +58,37 @@ export async function generatePdf({ configuration }: { configuration: Configurat
 				continue;
 			}
 
-			doc.font("Roboto-Regular").text(
-				col.label,
-				baseOffset(10) + convertUnits(46) * colIndex,
-				baseOffset(48) + convertUnits(45) * rowIndex + rowIndex * 3,
-				{
-					width: convertUnits(40),
-					align: "center",
-					baseline: "bottom",
-				}
-			);
+			const cellX = baseOffset(10) + convertUnits(46) * colIndex;
+			const cellY = baseOffset(10) + convertUnits(46) * rowIndex;
+			const cellW = convertUnits(43);
+			const cellH = convertUnits(43);
+			const padding = convertUnits(2);
+			const labelHeight = convertUnits(10);
 
 			const imageBytes = await fetch(col.imageUrl!).then((res) => res.arrayBuffer());
 
+			const imgW = cellW - padding * 2;
+			const imgH = cellH - labelHeight - padding * 2;
+
 			doc.image(
 				imageBytes,
-				baseOffset(12) + convertUnits(46) * colIndex,
-				baseOffset(12) + convertUnits(45) * rowIndex + rowIndex * 3,
+				cellX + padding,
+				cellY + padding,
 				{
-					width: 110,
-					height: 80,
+					fit: [imgW, imgH],
 					align: "center",
-					valign: "bottom",
+					valign: "center",
+				}
+			);
+
+			doc.font("Roboto-Regular").text(
+				col.label,
+				cellX,
+				cellY + cellH - labelHeight / 2.5,
+				{
+					width: cellW,
+					align: "center",
+					baseline: "bottom",
 				}
 			);
 		}
