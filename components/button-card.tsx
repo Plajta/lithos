@@ -33,6 +33,13 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 					<label
 						id={`dropzone-file-${id}`}
 						className="flex-1 flex items-center p-0 m-0 justify-center w-full border-2 border-gray-300 border-dashed rounded-t-xl cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500"
+						onDragOver={(e) => e.preventDefault()}
+						onDrop={(e) => {
+							e.preventDefault();
+							const file = e.dataTransfer.files?.[0];
+							if (!file) return;
+							uploadButtonImage(id, file);
+						}}
 					>
 						<div className="flex flex-col items-center justify-center flex-1">
 							<div className="flex flex-col items-center justify-center pt-5 pb-6">
