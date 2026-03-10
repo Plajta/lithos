@@ -1,5 +1,5 @@
 import { Upload, X } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Card, CardHeader, CardContent } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
@@ -10,6 +10,7 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 	const { uploadButtonImage, updateButtonLabel } = useConfigurationStore();
 
 	const previousValue = useRef(label);
+	const [isDragging, setIsDragging] = useState(false);
 
 	return (
 		<Card className="h-[280px] p-0 gap-0 justify-between">
@@ -32,24 +33,24 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 				) : (
 					<label
 						id={`dropzone-file-${id}`}
-						className="flex-1 flex items-center p-0 m-0 justify-center w-full border-2 border-gray-300 border-dashed rounded-t-xl cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500"
-						onDragOver={(e) => e.preventDefault()}
+						className={`flex-1 flex items-center p-0 m-0 justify-center w-full border-2 border-dashed rounded-t-xl transition-colors ${isDragging ? "border-blue-400 bg-blue-50 dark:bg-blue-950 cursor-copy" : "border-gray-300 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-800 hover:bg-gray-100 cursor-pointer"}`}
+						onDragOver={(e) => {
+							e.preventDefault();
+							setIsDragging(true);
+						}}
+						onDragLeave={() => setIsDragging(false)}
 						onDrop={(e) => {
 							e.preventDefault();
+							setIsDragging(false);
 							const file = e.dataTransfer.files?.[0];
 							if (!file) return;
 							uploadButtonImage(id, file);
 						}}
 					>
 						<div className="flex flex-col items-center justify-center flex-1">
-							<div className="flex flex-col items-center justify-center pt-5 pb-6">
-								<Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" />
-
-								<p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-									<span className="font-semibold">Klikni pro nahrání obrázku</span> nebo přetáhni
-									soubor
-								</p>
-							</div>
+							<Upload
+								className={`w-8 h-8 transition-colors ${isDragging ? "text-blue-400" : "text-gray-500 dark:text-gray-400"}`}
+							/>
 						</div>
 
 						<input
