@@ -45,7 +45,10 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 						<label
 							id={`dropzone-file-${id}`}
 							className={`${dropzoneBase} ${isDragging ? dropzoneDrag : dropzoneIdle}`}
-							onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+							onDragOver={(e) => {
+								e.preventDefault();
+								setIsDragging(true);
+							}}
 							onDragLeave={() => setIsDragging(false)}
 							onDrop={(e) => {
 								e.preventDefault();
@@ -56,7 +59,9 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 							}}
 						>
 							<div className="flex flex-col items-center justify-center flex-1">
-								<Upload className={`w-8 h-8 transition-colors ${isDragging ? "text-blue-400" : "text-gray-500 dark:text-gray-400"}`} />
+								<Upload
+									className={`w-8 h-8 transition-colors ${isDragging ? "text-blue-400" : "text-gray-500 dark:text-gray-400"}`}
+								/>
 							</div>
 							<input
 								id={`dropzone-file-${id}`}
@@ -71,52 +76,60 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 							/>
 						</label>
 					)
-				) : (
-					audioUrl ? (
-						<div className="relative group w-full flex-1 min-h-0 overflow-hidden rounded-t-xl flex flex-col items-center justify-center gap-3 bg-gray-50 dark:bg-gray-700">
-							<Volume2 className="w-10 h-10 text-gray-500 dark:text-gray-400" />
-							<div className="flex gap-2">
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => {
-										if (audioRef.current) {
-											setIsPlaying(true);
-											audioRef.current.play();
-										}
-									}}
-									disabled={isPlaying}
-								>
-									{isPlaying ? <Loader2 className="animate-spin" /> : "Přehrát"}
-								</Button>
-								<Button variant="outline" size="sm" onClick={() => uploadButtonAudio(id, null)}>
-									<X className="w-4 h-4" />
-								</Button>
-							</div>
-							<audio
-								ref={audioRef}
-								src={audioUrl}
-								onEnded={() => setIsPlaying(false)}
-								style={{ display: "none" }}
-							/>
+				) : audioUrl ? (
+					<div className="relative group w-full flex-1 min-h-0 overflow-hidden rounded-t-xl flex flex-col items-center justify-center gap-3 bg-gray-50 dark:bg-gray-700">
+						<Volume2 className="w-10 h-10 text-gray-500 dark:text-gray-400" />
+						<div className="flex gap-2">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									if (audioRef.current) {
+										setIsPlaying(true);
+										audioRef.current.play();
+									}
+								}}
+								disabled={isPlaying}
+							>
+								{isPlaying ? <Loader2 className="animate-spin" /> : "Přehrát"}
+							</Button>
+							<Button variant="outline" size="sm" onClick={() => uploadButtonAudio(id, null)}>
+								<X className="w-4 h-4" />
+							</Button>
 						</div>
-					) : (
-						<div
-							className={`${dropzoneBase} ${isDragging ? dropzoneDrag : dropzoneIdle} flex-col gap-3`}
-							onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-							onDragLeave={() => setIsDragging(false)}
-							onDrop={(e) => {
-								e.preventDefault();
-								setIsDragging(false);
-								const file = e.dataTransfer.files?.[0];
-								if (!file) return;
-								uploadButtonAudio(id, file);
-							}}
-						>
-							<Music className={`w-8 h-8 transition-colors ${isDragging ? "text-blue-400" : "text-gray-500 dark:text-gray-400"}`} />
-							<div className="flex gap-2">							<label className="cursor-pointer">
+						<audio
+							ref={audioRef}
+							src={audioUrl}
+							onEnded={() => setIsPlaying(false)}
+							style={{ display: "none" }}
+						/>
+					</div>
+				) : (
+					<div
+						className={`${dropzoneBase} ${isDragging ? dropzoneDrag : dropzoneIdle} flex-col gap-3`}
+						onDragOver={(e) => {
+							e.preventDefault();
+							setIsDragging(true);
+						}}
+						onDragLeave={() => setIsDragging(false)}
+						onDrop={(e) => {
+							e.preventDefault();
+							setIsDragging(false);
+							const file = e.dataTransfer.files?.[0];
+							if (!file) return;
+							uploadButtonAudio(id, file);
+						}}
+					>
+						<Music
+							className={`w-8 h-8 transition-colors ${isDragging ? "text-blue-400" : "text-gray-500 dark:text-gray-400"}`}
+						/>
+						<div className="flex gap-2">
+							{" "}
+							<label className="cursor-pointer">
 								<Button variant="outline" size="sm" asChild>
-									<span><Upload className="w-4 h-4" /></span>
+									<span>
+										<Upload className="w-4 h-4" />
+									</span>
 								</Button>
 								<input
 									accept="audio/*"
@@ -128,17 +141,19 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 										uploadButtonAudio(id, file);
 									}}
 								/>
-							</label>								<Popover>
-									<PopoverTrigger asChild>
-										<Button variant="outline" size="sm"><Mic className="w-4 h-4" /></Button>
-									</PopoverTrigger>
-									<PopoverContent className="p-1 w-auto">
-										<VoiceRecorder index={id} />
-									</PopoverContent>
-								</Popover>
-							</div>
+							</label>{" "}
+							<Popover>
+								<PopoverTrigger asChild>
+									<Button variant="outline" size="sm">
+										<Mic className="w-4 h-4" />
+									</Button>
+								</PopoverTrigger>
+								<PopoverContent className="p-1 w-auto">
+									<VoiceRecorder index={id} />
+								</PopoverContent>
+							</Popover>
 						</div>
-					)
+					</div>
 				)}
 			</CardHeader>
 
@@ -165,7 +180,10 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 						<Button
 							variant="outline"
 							size="icon"
-							onClick={() => { setMode((m) => (m === "image" ? "audio" : "image")); setIsDragging(false); }}
+							onClick={() => {
+								setMode((m) => (m === "image" ? "audio" : "image"));
+								setIsDragging(false);
+							}}
 							aria-label="Přepnout režim"
 						>
 							{mode === "image" ? <Music className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
