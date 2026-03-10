@@ -13,15 +13,15 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 
 	return (
 		<Card className="h-[280px] p-0 gap-0 justify-between">
-			<CardHeader className="flex-1 flex flex-col items-center justify-center p-0">
+			<CardHeader className="flex-1 flex flex-col items-center justify-center p-0 overflow-hidden">
 				{imageUrl ? (
-					<div className="relative group w-full h-full">
-						<div className="flex justify-center items-center h-full">
-							<img width={150} height={100} src={imageUrl} className="rounded-t-xl object-cover" />
+					<div className="relative group w-full flex-1 min-h-0 overflow-hidden rounded-t-xl">
+						<div className="w-full h-full">
+							<img src={imageUrl} className="w-full h-full object-contain" />
 						</div>
 
 						<div
-							className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-t-xl"
+							className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
 							onClick={() => uploadButtonImage(id, null)}
 							role="button"
 							aria-label="Odebrat obrázek"
@@ -49,14 +49,12 @@ export function ButtonCard({ button: { label, imageUrl, audioUrl, id } }: { butt
 									<span className="font-semibold">Klikni pro nahrání obrázku</span> nebo přetáhni
 									soubor
 								</p>
-
-								<p className="text-xs text-gray-500 dark:text-gray-400">zatím jenom PNG</p>
 							</div>
 						</div>
 
 						<input
 							id={`dropzone-file-${id}`}
-							accept="image/png"
+							accept="image/png,image/jpeg,image/webp,image/bmp"
 							type="file"
 							className="hidden"
 							onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
