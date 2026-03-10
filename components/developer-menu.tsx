@@ -204,7 +204,7 @@ export function DeveloperMenu() {
 
 											setOutput((prev) => [
 												...prev,
-												{ command: "MV", line: JSON.stringify(response.data) },
+												{ command: "RM", line: JSON.stringify(response.data) },
 											]);
 										}}
 									>

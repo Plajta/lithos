@@ -51,7 +51,7 @@ export async function generatePdf({ configuration }: { configuration: Configurat
 				baseOffset(10) + convertUnits(46) * rowIndex,
 				convertUnits(43),
 				convertUnits(43),
-				10
+				10,
 			).stroke();
 
 			if (!col || !col.label || !col.imageUrl) {
@@ -70,27 +70,17 @@ export async function generatePdf({ configuration }: { configuration: Configurat
 			const imgW = cellW - padding * 2;
 			const imgH = cellH - labelHeight - padding * 2;
 
-			doc.image(
-				imageBytes,
-				cellX + padding,
-				cellY + padding,
-				{
-					fit: [imgW, imgH],
-					align: "center",
-					valign: "center",
-				}
-			);
+			doc.image(imageBytes, cellX + padding, cellY + padding, {
+				fit: [imgW, imgH],
+				align: "center",
+				valign: "center",
+			});
 
-			doc.font("Roboto-Regular").text(
-				col.label,
-				cellX,
-				cellY + cellH - labelHeight / 2.5,
-				{
-					width: cellW,
-					align: "center",
-					baseline: "bottom",
-				}
-			);
+			doc.font("Roboto-Regular").text(col.label, cellX, cellY + cellH - labelHeight / 2.5, {
+				width: cellW,
+				align: "center",
+				baseline: "bottom",
+			});
 		}
 	}
 
@@ -107,7 +97,7 @@ export async function generatePdf({ configuration }: { configuration: Configurat
 	});
 
 	doc.rect(baseOffset(105), baseOffset(201), convertUnits(90), convertUnits(10)).fill(
-		`#${COLOR_LOOKUP_TABLE[configuration.colorCode as keyof typeof COLOR_LOOKUP_TABLE]}`
+		`#${COLOR_LOOKUP_TABLE[configuration.colorCode as keyof typeof COLOR_LOOKUP_TABLE]}`,
 	);
 
 	doc.end();
