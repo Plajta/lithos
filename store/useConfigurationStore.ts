@@ -10,12 +10,10 @@ export const COLOR_LOOKUP_TABLE = {
 	CYAN: "00ffff",
 	MAGENTA: "ff00ff",
 	YELLOW: "ffff00",
-	PURPLE: "800080",
 	ORANGE: "ffa500",
-	BLACK: "000000",
 } as const;
 
-export const Colors = ["RED", "GREEN", "BLUE", "CYAN", "MAGENTA", "YELLOW", "PURPLE", "ORANGE", "BLACK"] as const;
+export const Colors = ["RED", "GREEN", "BLUE", "CYAN", "MAGENTA", "YELLOW", "ORANGE"] as const;
 
 export const ConfigurationTypes = ["sisyphus"] as const;
 
@@ -142,7 +140,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					imageUrl: URL.createObjectURL(imageBlob),
 					audioUrl: URL.createObjectURL(audioBlob),
 				};
-			})
+			}),
 		);
 
 		set((state) => ({
