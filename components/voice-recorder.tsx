@@ -1,7 +1,6 @@
 import { PopoverClose } from "@radix-ui/react-popover";
 import React, { useState, useRef } from "react";
 import { Button } from "~/components/ui/button";
-import { Separator } from "~/components/ui/separator";
 import { useConfigurationStore } from "~/store/useConfigurationStore";
 
 export function VoiceRecorder({ index }: { index: number }) {
@@ -82,27 +81,6 @@ export function VoiceRecorder({ index }: { index: number }) {
 			{audioURL && !isRecording && <audio className="h-10" controls src={audioURL} />}
 
 			<input ref={fileInputRef} type="file" name="voice" style={{ display: "none" }} />
-
-			<Separator orientation="vertical" />
-
-			<Button asChild variant="outline">
-				<label htmlFor="audioInput">
-					Nahrát soubor
-					<input
-						id="audioInput"
-						name="image"
-						type="file"
-						accept=".wav"
-						hidden
-						onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-							const file = event.target.files?.[0];
-							if (!file) return;
-
-							uploadButtonAudio(index, file);
-						}}
-					/>
-				</label>
-			</Button>
 		</div>
 	);
 }
