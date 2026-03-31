@@ -84,6 +84,7 @@ type Response<T> = Promise<{ success: boolean; data: T | string }>;
 
 interface ProtocolContextType {
 	connect: () => Promise<void>;
+	disconnect: () => Promise<void>;
 	protocol: {
 		connected: { info: CommandResponse["info"] } | null;
 		commands: {
@@ -95,7 +96,7 @@ interface ProtocolContextType {
 					| {
 							setBytesLeft?: Dispatch<SetStateAction<number>>;
 					  }
-					| undefined
+					| undefined,
 			) => Response<CommandResponse["push"]>;
 			ls: () => Response<CommandResponse["ls"]>;
 			rm: (path: string) => Response<CommandResponse["rm"]>;
@@ -119,6 +120,21 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	const [protocolInfo, setProtocolInfo] = useState<CommandResponse["info"] | null>(null);
 
 	const { mode } = useModeStore();
+
+	async function disconnect() {
+		try {
+			writer?.releaseLock();
+			reader?.releaseLock();
+			await serialPort?.close();
+		} catch {
+			// ignore errors during disconnect
+		} finally {
+			setWriter(null);
+			setReader(null);
+			setSerialPort(null);
+			setProtocolInfo(null);
+		}
+	}
 
 	async function connect() {
 		if ("serial" in navigator) {
@@ -233,7 +249,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			| {
 					setBytesLeft?: Dispatch<SetStateAction<number>>;
 			  }
-			| undefined
+			| undefined,
 	): Response<CommandResponse["push"]> {
 		if (!writer) {
 			return {
@@ -485,6 +501,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		<ProtocolContext.Provider
 			value={{
 				connect,
+				disconnect,
 				protocol: {
 					connected: protocolInfo ? { info: protocolInfo } : null,
 					commands: { info, push, ls, rm, mv, play, pull, refreshInfo },

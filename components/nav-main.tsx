@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { ConfirmationButton } from "~/components/confirmation-button";
 
 export function NavMain() {
-	const { connect, protocol } = useProtocol();
+	const { connect, disconnect, protocol } = useProtocol();
 
 	async function deleteConfiguration(color: string) {
 		const { success, data } = await protocol.commands.ls();
@@ -72,6 +72,10 @@ export function NavMain() {
 
 			{protocol.connected && (
 				<SidebarMenu>
+					<Button variant="outline" className="w-full mt-2" onClick={async () => await disconnect()}>
+						Odpojit komunikátor
+					</Button>
+
 					<Separator className="my-2" />
 
 					<p className="text-sm font-semibold">Nahrané konfigurace</p>
