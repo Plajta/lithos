@@ -23,6 +23,22 @@ import { ConfirmationButton } from "~/components/confirmation-button";
 export function NavMain() {
 	const { connect, disconnect, protocol } = useProtocol();
 
+	async function clearCommunicator() {
+		const { success, data } = await protocol.commands.ls();
+
+		if (!success) {
+			toast.error(data as string);
+			return;
+		}
+
+		for (const file of data as FileSystemItem[]) {
+			if (file.name === "color_lookup_table") continue;
+			await protocol.commands.rm(file.name);
+		}
+
+		toast.success("Komunikátor byl úspěšně vyčištěn.");
+	}
+
 	async function deleteConfiguration(color: string) {
 		const { success, data } = await protocol.commands.ls();
 
@@ -75,6 +91,17 @@ export function NavMain() {
 					<Button variant="outline" className="w-full mt-2" onClick={async () => await disconnect()}>
 						Odpojit komunikátor
 					</Button>
+
+					<ConfirmationButton
+						disclaimer="POZOR! Tato akce je nevratná, opravdu chcete smazat všechny soubory?"
+						side="right"
+						destructive
+						action={async () => await clearCommunicator()}
+					>
+						<Button variant="outline" className="w-full text-destructive hover:text-destructive">
+							Vyčistit komunikátor
+						</Button>
+					</ConfirmationButton>
 
 					<Separator className="my-2" />
 

@@ -387,7 +387,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		return {
 			success: response.startsWith(DEVICE_RESPONSE.ACK),
 			data: response.startsWith(DEVICE_RESPONSE.ACK)
-				? dest
+				? `${source} -> ${dest}`
 				: `Moving data on the device failed. Error returned from the device: ${response}`,
 		};
 	}
