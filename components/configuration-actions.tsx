@@ -9,6 +9,7 @@ import { Progress } from "~/components/ui/progress";
 import { Popover, PopoverContent, PopoverAnchor } from "~/components/ui/popover";
 import { NewConfigurationPopover } from "~/components/new-configuration-popover";
 import { ConfirmationButton } from "~/components/confirmation-button";
+import { normalizeAudio } from "~/lib/normalize-audio";
 
 export function ConfigurationActions() {
 	const [leftToUpload, setLeftToUpload] = useState<number | null>(null);
@@ -21,12 +22,12 @@ export function ConfigurationActions() {
 
 	const uploadInProgress = useMemo(
 		() => (configuration && progressStep && leftToUpload ? true : false),
-		[configuration, progressStep, leftToUpload]
+		[configuration, progressStep, leftToUpload],
 	);
 
 	const totalItemsToUpload = useMemo(
 		() => (configuration ? configuration.buttons.filter((button) => !!button.audioUrl).length : 0),
-		[configuration]
+		[configuration],
 	);
 
 	const duplicateConfiguration = useMemo(
@@ -34,7 +35,7 @@ export function ConfigurationActions() {
 			!!configuration &&
 			!!protocol.connected &&
 			protocol.connected.info.loadedConfigurations.some((item) => item.colorCode === configuration.colorCode),
-		[protocol, configuration]
+		[protocol, configuration],
 	);
 
 	const uploadConfiguration = async () => {
@@ -42,7 +43,7 @@ export function ConfigurationActions() {
 			const contents = [
 				JSON.stringify([
 					...protocol.connected!.info.loadedConfigurations.filter(
-						(conf) => conf.colorCode !== configuration.colorCode
+						(conf) => conf.colorCode !== configuration.colorCode,
 					),
 					{
 						colorCode: configuration.colorCode,
@@ -68,7 +69,8 @@ export function ConfigurationActions() {
 					continue;
 				}
 
-				const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
+				const rawAudioBlob = await fetch(button.audioUrl).then((r) => r.blob());
+				const audioBlob = await normalizeAudio(rawAudioBlob);
 
 				setBytesLeft(audioBlob.size);
 				setProgressStep(100 / audioBlob.size);
