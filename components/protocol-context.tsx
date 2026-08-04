@@ -18,6 +18,13 @@ export interface FileSystemItem {
 	size: number | null;
 }
 
+/** Device system files that must never be removed by a card/configuration delete. */
+export const PROTECTED_FILES = ["color_lookup_table", "conf_info"] as const;
+
+export function isProtectedFile(name: string): boolean {
+	return (PROTECTED_FILES as readonly string[]).includes(name);
+}
+
 interface CommandResponse {
 	info: {
 		type: ProtocolType;

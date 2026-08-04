@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { generatePdf } from "~/lib/pdf-generator";
+import { TARGET_SAMPLE_RATE } from "~/lib/normalize-audio";
 
 export const COLOR_LOOKUP_TABLE = {
 	RED: "ff0000",
@@ -315,8 +316,12 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			const audioCtx = new AudioContext();
 			const decoded = await audioCtx.decodeAudioData(arrayBuffer);
 
-			const sampleRate = 22000;
-			const offlineCtx = new OfflineAudioContext(1, decoded.duration * sampleRate, sampleRate);
+			const sampleRate = TARGET_SAMPLE_RATE;
+			const offlineCtx = new OfflineAudioContext(
+				1,
+				Math.max(1, Math.ceil(decoded.duration * sampleRate)),
+				sampleRate,
+			);
 			const source = offlineCtx.createBufferSource();
 			source.buffer = decoded;
 			source.connect(offlineCtx.destination);

@@ -1,33 +1,45 @@
 const TARGET_DB = -6;
 const TARGET_AMPLITUDE = Math.pow(10, TARGET_DB / 20); // ~0.501
 
+/** Sample rate expected by the device (22 kHz, mono, 16-bit PCM). */
+export const TARGET_SAMPLE_RATE = 22000;
+
 export async function normalizeAudio(blob: Blob): Promise<Blob> {
 	const audioContext = new AudioContext();
 	const arrayBuffer = await blob.arrayBuffer();
-	const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+	const decoded = await audioContext.decodeAudioData(arrayBuffer);
+	await audioContext.close();
+
+	// Resample to the device sample rate and downmix to mono
+	const offlineCtx = new OfflineAudioContext(
+		1,
+		Math.max(1, Math.ceil(decoded.duration * TARGET_SAMPLE_RATE)),
+		TARGET_SAMPLE_RATE,
+	);
+	const source = offlineCtx.createBufferSource();
+	source.buffer = decoded;
+	source.connect(offlineCtx.destination);
+	source.start(0);
+
+	const audioBuffer = await offlineCtx.startRendering();
+	const samples = audioBuffer.getChannelData(0);
 
 	let peak = 0;
-	for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-		const data = audioBuffer.getChannelData(ch);
-		for (let i = 0; i < data.length; i++) {
-			const abs = Math.abs(data[i]);
-			if (abs > peak) peak = abs;
-		}
+	for (let i = 0; i < samples.length; i++) {
+		const abs = Math.abs(samples[i]);
+		if (abs > peak) peak = abs;
 	}
 
 	if (peak > 0) {
 		const gain = TARGET_AMPLITUDE / peak;
-		for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-			const data = audioBuffer.getChannelData(ch);
-			for (let i = 0; i < data.length; i++) {
-				data[i] *= gain;
-			}
+		for (let i = 0; i < samples.length; i++) {
+			samples[i] *= gain;
 		}
 	}
 
 	// Encode as 16-bit PCM WAV
-	const numChannels = audioBuffer.numberOfChannels;
-	const sampleRate = audioBuffer.sampleRate;
+	const numChannels = 1;
+	const sampleRate = TARGET_SAMPLE_RATE;
 	const numSamples = audioBuffer.length;
 	const bytesPerSample = 2;
 	const dataSize = numChannels * numSamples * bytesPerSample;
@@ -54,13 +66,10 @@ export async function normalizeAudio(blob: Blob): Promise<Blob> {
 
 	let offset = 44;
 	for (let i = 0; i < numSamples; i++) {
-		for (let ch = 0; ch < numChannels; ch++) {
-			const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(ch)[i]));
-			view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-			offset += 2;
-		}
+		const sample = Math.max(-1, Math.min(1, samples[i]));
+		view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+		offset += 2;
 	}
 
-	await audioContext.close();
 	return new Blob([buffer], { type: "audio/wav" });
 }

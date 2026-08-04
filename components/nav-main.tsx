@@ -10,7 +10,7 @@ import {
 	SidebarMenuItem,
 	SidebarMenuSub,
 } from "~/components/ui/sidebar";
-import { FileSystemItem, useProtocol } from "~/components/protocol-context";
+import { FileSystemItem, isProtectedFile, useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
 import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
@@ -47,10 +47,17 @@ export function NavMain() {
 			return;
 		}
 
-		const fileMask = color.toLowerCase().substring(0, 1);
+		// Audio files are named `${colorInitial}_${row}_${col}.wav` — match the full prefix,
+		// otherwise system files sharing the initial (e.g. CYAN vs. color_lookup_table / conf_info)
+		// would be deleted too.
+		const fileMask = `${color.toLowerCase().substring(0, 1)}_`;
 
 		for (const file of data as FileSystemItem[]) {
-			if (fileMask !== file.name.substring(0, 1)) {
+			if (isProtectedFile(file.name)) {
+				continue;
+			}
+
+			if (!file.name.startsWith(fileMask)) {
 				continue;
 			}
 
