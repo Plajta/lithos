@@ -11,9 +11,9 @@ export function ProtocolInfo() {
 						(100 / (protocol.connected.info.blockSize * protocol.connected.info.blockCount)) *
 						protocol.connected.info.usedBlockCount *
 						protocol.connected.info.blockSize
-				  ).toFixed(2)
+					).toFixed(2)
 				: null,
-		[protocol]
+		[protocol],
 	);
 
 	return (
@@ -29,13 +29,17 @@ export function ProtocolInfo() {
 						<p>
 							Verze zařízení: {protocol.connected.info.version} ({protocol.connected.info.gitCommitSha})
 						</p>
-						<p>
-							Využito: {usedTotal}% z{" "}
-							{Math.round(
-								(protocol.connected.info.blockSize * protocol.connected.info.blockCount) / 1000000
-							).toFixed(1)}{" "}
-							MB
-						</p>
+						{protocol.connected.info.type === "bootloader" ? (
+							<p>Režim: bootloader</p>
+						) : (
+							<p>
+								Využito: {usedTotal}% z{" "}
+								{Math.round(
+									(protocol.connected.info.blockSize * protocol.connected.info.blockCount) / 1000000,
+								).toFixed(1)}{" "}
+								MB
+							</p>
+						)}
 					</div>
 				</div>
 			</div>

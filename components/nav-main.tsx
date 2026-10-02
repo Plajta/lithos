@@ -10,7 +10,7 @@ import {
 	SidebarMenuItem,
 	SidebarMenuSub,
 } from "~/components/ui/sidebar";
-import { FileSystemItem, isLutFile, isProtectedFile, useProtocol } from "~/components/protocol-context";
+import { FileSystemItem, isProtectedFile, isUndeletableFile, useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
 import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
@@ -19,9 +19,13 @@ import { ColorDot } from "~/components/color-dot";
 import { COLOR_LOOKUP_TABLE } from "~/store/useConfigurationStore";
 import { toast } from "sonner";
 import { ConfirmationButton } from "~/components/confirmation-button";
+import { Progress } from "~/components/ui/progress";
+import { useState } from "react";
 
 export function NavMain() {
 	const { connect, disconnect, protocol } = useProtocol();
+
+	const [clearProgress, setClearProgress] = useState<{ done: number; total: number } | null>(null);
 
 	async function clearCommunicator() {
 		const { success, data } = await protocol.commands.ls();
@@ -31,9 +35,28 @@ export function NavMain() {
 			return;
 		}
 
-		for (const file of data as FileSystemItem[]) {
-			if (isLutFile(file.name)) continue;
-			await protocol.commands.rm(file.name);
+		const filesToRemove = (data as FileSystemItem[]).filter((file) => !isUndeletableFile(file.name));
+		const failedFiles: string[] = [];
+
+		try {
+			setClearProgress({ done: 0, total: filesToRemove.length });
+
+			for (const [index, file] of filesToRemove.entries()) {
+				const response = await protocol.commands.rm(file.name);
+
+				if (!response.success) {
+					failedFiles.push(file.name);
+				}
+
+				setClearProgress({ done: index + 1, total: filesToRemove.length });
+			}
+		} finally {
+			setClearProgress(null);
+		}
+
+		if (failedFiles.length > 0) {
+			toast.error(`Nepodařilo se smazat ${failedFiles.length} souborů: ${failedFiles.join(", ")}`);
+			return;
 		}
 
 		toast.success("Komunikátor byl úspěšně vyčištěn.");
@@ -105,10 +128,27 @@ export function NavMain() {
 						destructive
 						action={async () => await clearCommunicator()}
 					>
-						<Button variant="outline" className="w-full text-destructive hover:text-destructive">
-							Vyčistit komunikátor
+						<Button
+							variant="outline"
+							className="w-full text-destructive hover:text-destructive"
+							disabled={!!clearProgress}
+						>
+							{clearProgress ? "Mazání souborů..." : "Vyčistit komunikátor"}
 						</Button>
 					</ConfirmationButton>
+
+					{clearProgress && (
+						<div className="flex flex-col gap-1 mt-1">
+							<p className="text-xs text-muted-foreground text-center">
+								Smazáno {clearProgress.done} / {clearProgress.total}
+							</p>
+
+							<Progress
+								className="rounded-sm h-1"
+								value={clearProgress.total ? (100 * clearProgress.done) / clearProgress.total : 100}
+							/>
+						</div>
+					)}
 
 					<Separator className="my-2" />
 

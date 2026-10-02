@@ -1,4 +1,5 @@
 import { PopoverClose, PopoverContentProps } from "@radix-ui/react-popover";
+import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 
@@ -11,8 +12,10 @@ interface ConfirmationButtonProps {
 }
 
 export function ConfirmationButton({ disclaimer, action, side, destructive, children }: ConfirmationButtonProps) {
+	const [open, setOpen] = useState(false);
+
 	return (
-		<Popover>
+		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>{children}</PopoverTrigger>
 
 			<PopoverContent className="p-2" side={side}>
@@ -30,7 +33,10 @@ export function ConfirmationButton({ disclaimer, action, side, destructive, chil
 							variant={destructive ? "destructive" : "outline"}
 							className="flex-1"
 							size="sm"
-							onClick={async () => await action()}
+							onClick={async () => {
+								setOpen(false);
+								await action();
+							}}
 						>
 							Potvrdit
 						</Button>

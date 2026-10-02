@@ -1,12 +1,17 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
-import { FileSystemItem, isLutFile, LUT_FILE_NAME, useProtocol } from "~/components/protocol-context";
+import {
+	FileSystemItem,
+	LUT_FILE_NAME,
+	normalizeFileName,
+	useProtocol,
+	VOLUME_SAMPLE_FILE_NAME,
+} from "~/components/protocol-context";
 import { useConfigurationStore } from "~/store/useConfigurationStore";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Progress } from "~/components/ui/progress";
-import { Popover, PopoverContent, PopoverAnchor } from "~/components/ui/popover";
 import { NewConfigurationPopover } from "~/components/new-configuration-popover";
 import { ConfirmationButton } from "~/components/confirmation-button";
 import { normalizeAudio } from "~/lib/normalize-audio";
@@ -36,7 +41,8 @@ export function ConfigurationActions() {
 		[protocol, configuration],
 	);
 
-	const ensureColorLookupTable = async () => {
+	/** Uploads default system files (LUT, volume sample) that are missing on the device. */
+	const ensureSystemFiles = async () => {
 		const { success, data } = await protocol.commands.ls();
 
 		if (!success) {
@@ -44,15 +50,44 @@ export function ConfigurationActions() {
 			return false;
 		}
 
-		if ((data as FileSystemItem[]).some((file) => isLutFile(file.name))) {
-			return true;
-		}
+		const existingFiles = (data as FileSystemItem[]).map((file) => normalizeFileName(file.name));
 
-		const response = await protocol.commands.push(new Blob([getColorLookupTable()]), LUT_FILE_NAME, {});
+		const defaultFiles = [
+			{ name: LUT_FILE_NAME, load: async () => new Blob([getColorLookupTable()]) },
+			{
+				name: VOLUME_SAMPLE_FILE_NAME,
+				load: async () => {
+					const response = await fetch(`/${VOLUME_SAMPLE_FILE_NAME}`);
 
-		if (!response.success) {
-			toast.error(response.data as string);
-			return false;
+					if (!response.ok) {
+						throw new Error(`Načtení ${VOLUME_SAMPLE_FILE_NAME} selhalo (${response.status}).`);
+					}
+
+					return await response.blob();
+				},
+			},
+		];
+
+		for (const defaultFile of defaultFiles) {
+			if (existingFiles.includes(defaultFile.name)) {
+				continue;
+			}
+
+			let fileBlob: Blob;
+
+			try {
+				fileBlob = await defaultFile.load();
+			} catch (error) {
+				toast.error((error as Error).message);
+				return false;
+			}
+
+			const response = await protocol.commands.push(fileBlob, defaultFile.name, {});
+
+			if (!response.success) {
+				toast.error(response.data as string);
+				return false;
+			}
 		}
 
 		return true;
@@ -60,7 +95,7 @@ export function ConfigurationActions() {
 
 	const uploadConfiguration = async () => {
 		if (configuration) {
-			if (!(await ensureColorLookupTable())) {
+			if (!(await ensureSystemFiles())) {
 				return;
 			}
 
@@ -137,6 +172,26 @@ export function ConfigurationActions() {
 		}
 	};
 
+	const uploadProgress =
+		currentItem !== null && totalItemsToUpload
+			? (100 * (currentItem - 1 + (bytesTotal ? (bytesTotal - bytesLeft) / bytesTotal : 0))) / totalItemsToUpload
+			: 0;
+
+	const uploadButton = (
+		<Button
+			variant="outline"
+			className={`relative overflow-hidden ${uploadInProgress ? "disabled:opacity-100" : ""}`}
+			disabled={uploadInProgress || !protocol.connected || !configuration}
+			onClick={duplicateConfiguration ? undefined : async () => await uploadConfiguration()}
+		>
+			{uploadInProgress ? `Nahrávání ${currentItem} / ${totalItemsToUpload}` : "Nahrát kartu do zařízení"}
+
+			{uploadInProgress && (
+				<Progress className="absolute bottom-0 left-0 rounded-none h-1" value={uploadProgress} />
+			)}
+		</Button>
+	);
+
 	return (
 		<div className="flex gap-2">
 			<NewConfigurationPopover />
@@ -163,42 +218,16 @@ export function ConfigurationActions() {
 				Uložit kartu na disk
 			</Button>
 
-			<Popover open={uploadInProgress}>
-				<PopoverAnchor>
-					{duplicateConfiguration ? (
-						<ConfirmationButton
-							disclaimer="Opravdu chcete přepsat aktuálně nahranou kartu?"
-							action={async () => await uploadConfiguration()}
-						>
-							<Button
-								variant="outline"
-								disabled={uploadInProgress || !protocol.connected || !configuration}
-							>
-								<p>Nahrát kartu do zařízení</p>
-							</Button>
-						</ConfirmationButton>
-					) : (
-						<Button
-							variant="outline"
-							disabled={uploadInProgress || !protocol.connected || !configuration}
-							onClick={async () => await uploadConfiguration()}
-						>
-							<p>Nahrát kartu do zařízení</p>
-						</Button>
-					)}
-				</PopoverAnchor>
-
-				<PopoverContent className="p-2 w-[250px] flex flex-col justify-between items-center gap-1">
-					<p className="text-xs text-muted-foreground">
-						{currentItem ?? 0} / {totalItemsToUpload}
-					</p>
-
-					<Progress
-						className="rounded-sm h-1"
-						value={bytesTotal ? (100 * (bytesTotal - bytesLeft)) / bytesTotal : 0}
-					/>
-				</PopoverContent>
-			</Popover>
+			{duplicateConfiguration ? (
+				<ConfirmationButton
+					disclaimer="Opravdu chcete přepsat aktuálně nahranou kartu?"
+					action={async () => await uploadConfiguration()}
+				>
+					{uploadButton}
+				</ConfirmationButton>
+			) : (
+				uploadButton
+			)}
 
 			<Button variant="outline" onClick={async () => await generateConfigurationPdf()} disabled={!configuration}>
 				Uložit pdf
