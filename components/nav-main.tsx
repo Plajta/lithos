@@ -10,7 +10,7 @@ import {
 	SidebarMenuItem,
 	SidebarMenuSub,
 } from "~/components/ui/sidebar";
-import { FileSystemItem, isProtectedFile, useProtocol } from "~/components/protocol-context";
+import { FileSystemItem, isLutFile, isProtectedFile, useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
 import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
@@ -32,7 +32,7 @@ export function NavMain() {
 		}
 
 		for (const file of data as FileSystemItem[]) {
-			if (file.name === "color_lookup_table") continue;
+			if (isLutFile(file.name)) continue;
 			await protocol.commands.rm(file.name);
 		}
 

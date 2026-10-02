@@ -18,11 +18,23 @@ export interface FileSystemItem {
 	size: number | null;
 }
 
-/** Device system files that must never be removed by a card/configuration delete. */
-export const PROTECTED_FILES = ["color_lookup_table", "conf_info"] as const;
+export const LUT_FILE_NAME = "color_lookup_table";
+
+export const PROTECTED_FILES = [LUT_FILE_NAME, "conf_info"] as const;
+
+export function normalizeFileName(name: string): string {
+	return name
+		.replace(/[\x00-\x1f\x7f]/g, "")
+		.trim()
+		.replace(/^(\.?\/)+/, "");
+}
+
+export function isLutFile(name: string): boolean {
+	return normalizeFileName(name) === LUT_FILE_NAME;
+}
 
 export function isProtectedFile(name: string): boolean {
-	return (PROTECTED_FILES as readonly string[]).includes(name);
+	return (PROTECTED_FILES as readonly string[]).includes(normalizeFileName(name));
 }
 
 interface CommandResponse {
@@ -358,6 +370,13 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function rm(path: string) {
+		if (isLutFile(path)) {
+			return {
+				success: false,
+				data: `Removing ${LUT_FILE_NAME} is not allowed.`,
+			};
+		}
+
 		await sendCommand(`${COMMANDS.RM} ${path}`);
 
 		const response = await readLine();
@@ -380,6 +399,13 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function mv(source: string, dest: string) {
+		if (isLutFile(source) || isLutFile(dest)) {
+			return {
+				success: false,
+				data: `Moving ${LUT_FILE_NAME} is not allowed.`,
+			};
+		}
+
 		await sendCommand(`${COMMANDS.MV} ${source} ${dest}`);
 
 		const response = await readLine();
