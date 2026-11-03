@@ -51,37 +51,36 @@ export async function generatePdf({ configuration }: { configuration: Configurat
 				baseOffset(10) + convertUnits(46) * rowIndex,
 				convertUnits(43),
 				convertUnits(43),
-				10
+				10,
 			).stroke();
 
 			if (!col || !col.label || !col.imageUrl) {
 				continue;
 			}
 
-			doc.font("Roboto-Regular").text(
-				col.label,
-				baseOffset(10) + convertUnits(46) * colIndex,
-				baseOffset(48) + convertUnits(45) * rowIndex + rowIndex * 3,
-				{
-					width: convertUnits(40),
-					align: "center",
-					baseline: "bottom",
-				}
-			);
+			const cellX = baseOffset(10) + convertUnits(46) * colIndex;
+			const cellY = baseOffset(10) + convertUnits(46) * rowIndex;
+			const cellW = convertUnits(43);
+			const cellH = convertUnits(43);
+			const padding = convertUnits(2);
+			const labelHeight = convertUnits(10);
 
 			const imageBytes = await fetch(col.imageUrl!).then((res) => res.arrayBuffer());
 
-			doc.image(
-				imageBytes,
-				baseOffset(12) + convertUnits(46) * colIndex,
-				baseOffset(12) + convertUnits(45) * rowIndex + rowIndex * 3,
-				{
-					width: 110,
-					height: 80,
-					align: "center",
-					valign: "bottom",
-				}
-			);
+			const imgW = cellW - padding * 2;
+			const imgH = cellH - labelHeight - padding * 2;
+
+			doc.image(imageBytes, cellX + padding, cellY + padding, {
+				fit: [imgW, imgH],
+				align: "center",
+				valign: "center",
+			});
+
+			doc.font("Roboto-Regular").text(col.label, cellX, cellY + cellH - labelHeight / 2.5, {
+				width: cellW,
+				align: "center",
+				baseline: "bottom",
+			});
 		}
 	}
 
@@ -98,7 +97,7 @@ export async function generatePdf({ configuration }: { configuration: Configurat
 	});
 
 	doc.rect(baseOffset(105), baseOffset(201), convertUnits(90), convertUnits(10)).fill(
-		`#${COLOR_LOOKUP_TABLE[configuration.colorCode as keyof typeof COLOR_LOOKUP_TABLE]}`
+		`#${COLOR_LOOKUP_TABLE[configuration.colorCode as keyof typeof COLOR_LOOKUP_TABLE]}`,
 	);
 
 	doc.end();

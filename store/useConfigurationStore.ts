@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { generatePdf } from "~/lib/pdf-generator";
+import { TARGET_SAMPLE_RATE } from "~/lib/normalize-audio";
 
 export const COLOR_LOOKUP_TABLE = {
 	RED: "ff0000",
@@ -10,12 +11,11 @@ export const COLOR_LOOKUP_TABLE = {
 	CYAN: "00ffff",
 	MAGENTA: "ff00ff",
 	YELLOW: "ffff00",
-	PURPLE: "800080",
 	ORANGE: "ffa500",
-	BLACK: "000000",
+	WHITE: "ffffff",
 } as const;
 
-export const Colors = ["RED", "GREEN", "BLUE", "CYAN", "MAGENTA", "YELLOW", "PURPLE", "ORANGE", "BLACK"] as const;
+export const Colors = ["RED", "GREEN", "BLUE", "CYAN", "MAGENTA", "YELLOW", "ORANGE", "WHITE"] as const;
 
 export const ConfigurationTypes = ["sisyphus"] as const;
 
@@ -142,7 +142,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 					imageUrl: URL.createObjectURL(imageBlob),
 					audioUrl: URL.createObjectURL(audioBlob),
 				};
-			})
+			}),
 		);
 
 		set((state) => ({
@@ -173,15 +173,19 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 		zip.file("manifest.json", JSON.stringify(manifest, null, 4));
 
 		for (const [index, button] of Object.entries(configuration.buttons)) {
-			if (!button.audioUrl || !button.imageUrl || !button.label) {
+			if (!button.audioUrl && !button.imageUrl && !button.label) {
 				continue;
 			}
 
-			const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
-			const imageUrl = await fetch(button.imageUrl).then((r) => r.blob());
+			if (button.audioUrl) {
+				const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
+				zip.file(`audio/${Number(button.id)}.wav`, audioBlob);
+			}
 
-			zip.file(`audio/${Number(button.id)}.wav`, audioBlob);
-			zip.file(`images/${Number(button.id)}.png`, imageUrl);
+			if (button.imageUrl) {
+				const imageBlob = await fetch(button.imageUrl).then((r) => r.blob());
+				zip.file(`images/${Number(button.id)}.png`, imageBlob);
+			}
 		}
 
 		const content = await zip.generateAsync({ type: "blob" });
@@ -235,9 +239,22 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 
 		const img = new Image();
 		img.onload = () => {
+			const MAX = 1024;
+			let { naturalWidth: w, naturalHeight: h } = img;
+
+			if (w > MAX || h > MAX) {
+				if (w > h) {
+					h = Math.round((h / w) * MAX);
+					w = MAX;
+				} else {
+					w = Math.round((w / h) * MAX);
+					h = MAX;
+				}
+			}
+
 			const canvas = document.createElement("canvas");
-			canvas.width = img.naturalWidth;
-			canvas.height = img.naturalHeight;
+			canvas.width = w;
+			canvas.height = h;
 
 			const ctx = canvas.getContext("2d");
 
@@ -245,7 +262,7 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 				throw new Error("ss");
 			}
 
-			ctx.drawImage(img, 0, 0);
+			ctx.drawImage(img, 0, 0, w, h);
 
 			set((state) => ({
 				configuration: {
@@ -299,8 +316,12 @@ export const useConfigurationStore = create<ConfigurationState>()((set, get) => 
 			const audioCtx = new AudioContext();
 			const decoded = await audioCtx.decodeAudioData(arrayBuffer);
 
-			const sampleRate = 44100;
-			const offlineCtx = new OfflineAudioContext(1, decoded.duration * sampleRate, sampleRate);
+			const sampleRate = TARGET_SAMPLE_RATE;
+			const offlineCtx = new OfflineAudioContext(
+				1,
+				Math.max(1, Math.ceil(decoded.duration * sampleRate)),
+				sampleRate,
+			);
 			const source = offlineCtx.createBufferSource();
 			source.buffer = decoded;
 			source.connect(offlineCtx.destination);

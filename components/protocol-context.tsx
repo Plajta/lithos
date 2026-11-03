@@ -6,6 +6,15 @@ import { useModeStore } from "~/store/use-mode-store";
 const EOT = 0x04;
 const CHUNK_SIZE = 1024;
 
+const USB_VENDOR_ID = 0xcafe;
+const APP_PRODUCT_ID = 0x6942;
+const BOOTLOADER_PRODUCT_ID = 0x6940;
+
+/** Eternity bootloader flash page size (`write` unit). */
+export const FLASH_PAGE_SIZE = 256;
+/** Eternity bootloader flash sector size (`erase` unit). */
+export const FLASH_SECTOR_SIZE = 4096;
+
 const DEVICE_RESPONSE = {
 	ACK: "ack",
 } as const;
@@ -16,6 +25,29 @@ export interface FileSystemItem {
 	name: string;
 	type: "folder" | "directory";
 	size: number | null;
+}
+
+export const LUT_FILE_NAME = "color_lookup_table";
+export const VOLUME_SAMPLE_FILE_NAME = "volume_sample.wav";
+
+/** System files that no action may remove or move. */
+export const UNDELETABLE_FILES = [LUT_FILE_NAME, VOLUME_SAMPLE_FILE_NAME] as const;
+
+export const PROTECTED_FILES = [...UNDELETABLE_FILES, "conf_info"] as const;
+
+export function normalizeFileName(name: string): string {
+	return name
+		.replace(/[\x00-\x1f\x7f]/g, "")
+		.trim()
+		.replace(/^(\.?\/)+/, "");
+}
+
+export function isUndeletableFile(name: string): boolean {
+	return (UNDELETABLE_FILES as readonly string[]).includes(normalizeFileName(name));
+}
+
+export function isProtectedFile(name: string): boolean {
+	return (PROTECTED_FILES as readonly string[]).includes(normalizeFileName(name));
 }
 
 interface CommandResponse {
@@ -29,6 +61,10 @@ interface CommandResponse {
 		usedBlockCount: number;
 		blockSize: number;
 		usesEternity: boolean;
+		/** Bootloader only: flash size in bytes. */
+		flashSize: number | null;
+		/** Bootloader only: bootloader size in bytes. */
+		bootloaderSize: number | null;
 		loadedConfigurations: ConfigurationInfo[];
 	};
 	push: {
@@ -40,6 +76,8 @@ interface CommandResponse {
 	mv: string;
 	play: string;
 	pull: Blob;
+	erase: number;
+	write: number;
 }
 
 interface ConfigurationInfo {
@@ -73,6 +111,10 @@ const COMMANDS = {
 	MV: "mv",
 	PLAY: "play",
 	PULL: "pull",
+	ERASE: "erase",
+	WRITE: "write",
+	JUMP: "jump",
+	RESET: "reset",
 };
 
 export const MODE = {
@@ -83,7 +125,8 @@ export const MODE = {
 type Response<T> = Promise<{ success: boolean; data: T | string }>;
 
 interface ProtocolContextType {
-	connect: () => Promise<void>;
+	connect: (target?: "app" | "bootloader") => Promise<void>;
+	disconnect: () => Promise<void>;
 	protocol: {
 		connected: { info: CommandResponse["info"] } | null;
 		commands: {
@@ -95,13 +138,17 @@ interface ProtocolContextType {
 					| {
 							setBytesLeft?: Dispatch<SetStateAction<number>>;
 					  }
-					| undefined
+					| undefined,
 			) => Response<CommandResponse["push"]>;
 			ls: () => Response<CommandResponse["ls"]>;
-			rm: (path: string) => Response<CommandResponse["rm"]>;
+			rm: (path: string, options?: { force?: boolean }) => Response<CommandResponse["rm"]>;
 			mv: (path: string, dest: string) => Response<CommandResponse["mv"]>;
 			play: (path: string) => Response<CommandResponse["play"]>;
 			pull: (path: string) => Response<CommandResponse["pull"]>;
+			erase: (address: number) => Response<CommandResponse["erase"]>;
+			write: (address: number, page: Uint8Array) => Response<CommandResponse["write"]>;
+			jump: () => Promise<void>;
+			reset: () => Promise<void>;
 			refreshInfo: () => Promise<void>;
 		};
 	};
@@ -120,13 +167,28 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 
 	const { mode } = useModeStore();
 
-	async function connect() {
+	async function disconnect() {
+		try {
+			writer?.releaseLock();
+			reader?.releaseLock();
+			await serialPort?.close();
+		} catch {
+			// ignore errors during disconnect
+		} finally {
+			setWriter(null);
+			setReader(null);
+			setSerialPort(null);
+			setProtocolInfo(null);
+		}
+	}
+
+	async function connect(target: "app" | "bootloader" = "app") {
 		if ("serial" in navigator) {
 			const port = await navigator.serial.requestPort({
 				filters: [
 					{
-						usbVendorId: 0xcafe,
-						usbProductId: 0x6942,
+						usbVendorId: USB_VENDOR_ID,
+						usbProductId: target === "bootloader" ? BOOTLOADER_PRODUCT_ID : APP_PRODUCT_ID,
 					},
 				],
 			});
@@ -187,7 +249,9 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function info(): Response<CommandResponse["info"]> {
-		if (!protocolInfo && mode === "DEBUG") {
+		const isBootloader = serialPort?.getInfo().usbProductId === BOOTLOADER_PRODUCT_ID;
+
+		if (!protocolInfo && mode === "DEBUG" && !isBootloader) {
 			const line = await readLine();
 
 			console.log(line);
@@ -203,9 +267,39 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			};
 		}
 
-		const [type, deviceName, gitCommitSha, version, buildDate, blockCount, usedBlockCount, blockSize] = response
-			.slice(0, -2)
-			.split(" ");
+		if (response.startsWith("bootloader")) {
+			const [type, deviceName, gitCommitSha, version, buildDate, flashSize, bootloaderSize] = response.split(" ");
+
+			return {
+				success: true,
+				data: {
+					type: type as ProtocolType,
+					deviceName,
+					gitCommitSha,
+					version,
+					buildDate: new Date(buildDate),
+					blockCount: 0,
+					usedBlockCount: 0,
+					blockSize: 0,
+					usesEternity: true,
+					flashSize: +flashSize,
+					bootloaderSize: +bootloaderSize,
+					loadedConfigurations: [],
+				},
+			};
+		}
+
+		const [
+			type,
+			deviceName,
+			gitCommitSha,
+			version,
+			buildDate,
+			blockCount,
+			usedBlockCount,
+			blockSize,
+			usesEternity,
+		] = response.split(" ");
 
 		const { success, data } = await pull("conf_info");
 
@@ -220,7 +314,9 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 				blockCount: +blockCount,
 				usedBlockCount: +usedBlockCount,
 				blockSize: +blockSize,
-				usesEternity: !response[response.length],
+				usesEternity: usesEternity === "1",
+				flashSize: null,
+				bootloaderSize: null,
 				loadedConfigurations: success ? JSON.parse(await (data as Blob).text()) : [],
 			},
 		};
@@ -233,7 +329,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 			| {
 					setBytesLeft?: Dispatch<SetStateAction<number>>;
 			  }
-			| undefined
+			| undefined,
 	): Response<CommandResponse["push"]> {
 		if (!writer) {
 			return {
@@ -334,7 +430,15 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		return { success: true, data: items };
 	}
 
-	async function rm(path: string) {
+	/** `force` bypasses the system file guard — only for the developer menu. */
+	async function rm(path: string, options?: { force?: boolean }) {
+		if (!options?.force && isUndeletableFile(path)) {
+			return {
+				success: false,
+				data: `Removing ${normalizeFileName(path)} is not allowed.`,
+			};
+		}
+
 		await sendCommand(`${COMMANDS.RM} ${path}`);
 
 		const response = await readLine();
@@ -357,6 +461,13 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 	}
 
 	async function mv(source: string, dest: string) {
+		if (isUndeletableFile(source) || isUndeletableFile(dest)) {
+			return {
+				success: false,
+				data: `Moving ${UNDELETABLE_FILES.join(", ")} is not allowed.`,
+			};
+		}
+
 		await sendCommand(`${COMMANDS.MV} ${source} ${dest}`);
 
 		const response = await readLine();
@@ -371,7 +482,7 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		return {
 			success: response.startsWith(DEVICE_RESPONSE.ACK),
 			data: response.startsWith(DEVICE_RESPONSE.ACK)
-				? dest
+				? `${source} -> ${dest}`
 				: `Moving data on the device failed. Error returned from the device: ${response}`,
 		};
 	}
@@ -481,13 +592,77 @@ export function ProtocolProvider({ children }: { children: React.ReactNode }) {
 		};
 	}
 
+	/** Bootloader: erase one flash sector. `address` must be sector aligned. */
+	async function erase(address: number): Response<CommandResponse["erase"]> {
+		if (address % FLASH_SECTOR_SIZE !== 0) {
+			return { success: false, data: "Address must be sector aligned." };
+		}
+
+		await sendCommand(`${COMMANDS.ERASE} 0x${address.toString(16)}`);
+
+		const response = await readLine();
+
+		if (!response || !response.startsWith(DEVICE_RESPONSE.ACK)) {
+			return {
+				success: false,
+				data: `Erasing flash failed. Error returned from the device: ${response}`,
+			};
+		}
+
+		return { success: true, data: address };
+	}
+
+	/** Bootloader: write one flash page. `address` must be page aligned, `page` exactly one page long. */
+	async function write(address: number, page: Uint8Array): Response<CommandResponse["write"]> {
+		if (!writer) {
+			return { success: false, data: "Writing data to device failed." };
+		}
+
+		if (address % FLASH_PAGE_SIZE !== 0) {
+			return { success: false, data: "Address must be page aligned." };
+		}
+
+		if (page.length !== FLASH_PAGE_SIZE) {
+			return { success: false, data: "Data must be exactly one page." };
+		}
+
+		await sendCommand(`${COMMANDS.WRITE} 0x${address.toString(16)}`);
+
+		const response = await readLine();
+
+		if (!response || !response.startsWith(DEVICE_RESPONSE.ACK)) {
+			return {
+				success: false,
+				data: `Writing flash failed. Error returned from the device: ${response}`,
+			};
+		}
+
+		// The device sends no confirmation after receiving the page.
+		await writer.write(page);
+
+		return { success: true, data: address };
+	}
+
+	/** Bootloader: jump to the main program. Breaks the connection. */
+	async function jump() {
+		await sendCommand(COMMANDS.JUMP);
+		await disconnect();
+	}
+
+	/** App: reset into Eternity bootloader (or bootrom). Breaks the connection. */
+	async function reset() {
+		await sendCommand(COMMANDS.RESET);
+		await disconnect();
+	}
+
 	return (
 		<ProtocolContext.Provider
 			value={{
 				connect,
+				disconnect,
 				protocol: {
 					connected: protocolInfo ? { info: protocolInfo } : null,
-					commands: { info, push, ls, rm, mv, play, pull, refreshInfo },
+					commands: { info, push, ls, rm, mv, play, pull, erase, write, jump, reset, refreshInfo },
 				},
 			}}
 		>

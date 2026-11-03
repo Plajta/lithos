@@ -1,32 +1,36 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
-import { useProtocol } from "~/components/protocol-context";
+import {
+	FileSystemItem,
+	LUT_FILE_NAME,
+	normalizeFileName,
+	useProtocol,
+	VOLUME_SAMPLE_FILE_NAME,
+} from "~/components/protocol-context";
 import { useConfigurationStore } from "~/store/useConfigurationStore";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Progress } from "~/components/ui/progress";
-import { Popover, PopoverContent, PopoverAnchor } from "~/components/ui/popover";
 import { NewConfigurationPopover } from "~/components/new-configuration-popover";
 import { ConfirmationButton } from "~/components/confirmation-button";
+import { normalizeAudio } from "~/lib/normalize-audio";
 
 export function ConfigurationActions() {
-	const [leftToUpload, setLeftToUpload] = useState<number | null>(null);
+	const [currentItem, setCurrentItem] = useState<number | null>(null);
 
 	const [bytesLeft, setBytesLeft] = useState<number>(0);
-	const [progressStep, setProgressStep] = useState<number>(0);
+	const [bytesTotal, setBytesTotal] = useState<number>(0);
 
-	const { configuration, saveConfiguration, generateConfigurationPdf, loadConfiguration } = useConfigurationStore();
+	const { configuration, saveConfiguration, generateConfigurationPdf, loadConfiguration, getColorLookupTable } =
+		useConfigurationStore();
 	const { protocol } = useProtocol();
 
-	const uploadInProgress = useMemo(
-		() => (configuration && progressStep && leftToUpload ? true : false),
-		[configuration, progressStep, leftToUpload]
-	);
+	const uploadInProgress = !!configuration && currentItem !== null;
 
 	const totalItemsToUpload = useMemo(
 		() => (configuration ? configuration.buttons.filter((button) => !!button.audioUrl).length : 0),
-		[configuration]
+		[configuration],
 	);
 
 	const duplicateConfiguration = useMemo(
@@ -34,15 +38,71 @@ export function ConfigurationActions() {
 			!!configuration &&
 			!!protocol.connected &&
 			protocol.connected.info.loadedConfigurations.some((item) => item.colorCode === configuration.colorCode),
-		[protocol, configuration]
+		[protocol, configuration],
 	);
+
+	/** Uploads default system files (LUT, volume sample) that are missing on the device. */
+	const ensureSystemFiles = async () => {
+		const { success, data } = await protocol.commands.ls();
+
+		if (!success) {
+			toast.error(data as string);
+			return false;
+		}
+
+		const existingFiles = (data as FileSystemItem[]).map((file) => normalizeFileName(file.name));
+
+		const defaultFiles = [
+			{ name: LUT_FILE_NAME, load: async () => new Blob([getColorLookupTable()]) },
+			{
+				name: VOLUME_SAMPLE_FILE_NAME,
+				load: async () => {
+					const response = await fetch(`/${VOLUME_SAMPLE_FILE_NAME}`);
+
+					if (!response.ok) {
+						throw new Error(`Načtení ${VOLUME_SAMPLE_FILE_NAME} selhalo (${response.status}).`);
+					}
+
+					return await response.blob();
+				},
+			},
+		];
+
+		for (const defaultFile of defaultFiles) {
+			if (existingFiles.includes(defaultFile.name)) {
+				continue;
+			}
+
+			let fileBlob: Blob;
+
+			try {
+				fileBlob = await defaultFile.load();
+			} catch (error) {
+				toast.error((error as Error).message);
+				return false;
+			}
+
+			const response = await protocol.commands.push(fileBlob, defaultFile.name, {});
+
+			if (!response.success) {
+				toast.error(response.data as string);
+				return false;
+			}
+		}
+
+		return true;
+	};
 
 	const uploadConfiguration = async () => {
 		if (configuration) {
+			if (!(await ensureSystemFiles())) {
+				return;
+			}
+
 			const contents = [
 				JSON.stringify([
 					...protocol.connected!.info.loadedConfigurations.filter(
-						(conf) => conf.colorCode !== configuration.colorCode
+						(conf) => conf.colorCode !== configuration.colorCode,
 					),
 					{
 						colorCode: configuration.colorCode,
@@ -59,48 +119,78 @@ export function ConfigurationActions() {
 				return;
 			}
 
-			setLeftToUpload(totalItemsToUpload);
+			try {
+				let uploadedCount = 0;
 
-			for (const [indexStr, button] of Object.entries(configuration.buttons)) {
-				const i = Number(indexStr);
+				for (const [indexStr, button] of Object.entries(configuration.buttons)) {
+					const i = Number(indexStr);
 
-				if (!button.audioUrl) {
-					continue;
-				}
-
-				const audioBlob = await fetch(button.audioUrl).then((r) => r.blob());
-
-				setBytesLeft(audioBlob.size);
-				setProgressStep(100 / audioBlob.size);
-
-				const row = Math.floor(i / 4);
-				const col = (i % 4) + 1;
-
-				const color = configuration.colorCode.toLowerCase().substring(0, 1);
-				const fileName = row === 0 ? `${color}_${col}.wav` : `${color}_${row}${col}.wav`;
-
-				const response = await protocol.commands.push(audioBlob, fileName, {
-					setBytesLeft,
-				});
-
-				if (response.success) {
-					const leftStepCount = totalItemsToUpload - 1;
-
-					setBytesLeft(0);
-					setProgressStep(0);
-
-					setLeftToUpload(leftStepCount === 0 ? null : leftStepCount);
-
-					if (leftStepCount === 0) {
-						toast.success("Konfigurace byla úspěšně nahrána!");
+					if (!button.audioUrl) {
+						continue;
 					}
-				} else {
-					toast.error(response.data as string);
-					break;
+
+					setCurrentItem(uploadedCount + 1);
+					setBytesTotal(0);
+					setBytesLeft(0);
+
+					const rawAudioBlob = await fetch(button.audioUrl).then((r) => r.blob());
+					const audioBlob = await normalizeAudio(rawAudioBlob);
+
+					setBytesTotal(audioBlob.size);
+					setBytesLeft(audioBlob.size);
+
+					const row = Math.floor(i / 4);
+
+					const col = i % 4;
+
+					const color = configuration.colorCode.toLowerCase().substring(0, 1);
+
+					const fileName = `${color}_${row}_${col}.wav`;
+
+					console.log(fileName);
+
+					const response = await protocol.commands.push(audioBlob, fileName, {
+						setBytesLeft,
+					});
+
+					if (response.success) {
+						uploadedCount++;
+
+						if (uploadedCount === totalItemsToUpload) {
+							toast.success("Konfigurace byla úspěšně nahrána!");
+						}
+					} else {
+						toast.error(response.data as string);
+						break;
+					}
 				}
+			} finally {
+				setCurrentItem(null);
+				setBytesTotal(0);
+				setBytesLeft(0);
 			}
 		}
 	};
+
+	const uploadProgress =
+		currentItem !== null && totalItemsToUpload
+			? (100 * (currentItem - 1 + (bytesTotal ? (bytesTotal - bytesLeft) / bytesTotal : 0))) / totalItemsToUpload
+			: 0;
+
+	const uploadButton = (
+		<Button
+			variant="outline"
+			className={`relative overflow-hidden ${uploadInProgress ? "disabled:opacity-100" : ""}`}
+			disabled={uploadInProgress || !protocol.connected || !configuration}
+			onClick={duplicateConfiguration ? undefined : async () => await uploadConfiguration()}
+		>
+			{uploadInProgress ? `Nahrávání ${currentItem} / ${totalItemsToUpload}` : "Nahrát kartu do zařízení"}
+
+			{uploadInProgress && (
+				<Progress className="absolute bottom-0 left-0 rounded-none h-1" value={uploadProgress} />
+			)}
+		</Button>
+	);
 
 	return (
 		<div className="flex gap-2">
@@ -128,39 +218,16 @@ export function ConfigurationActions() {
 				Uložit kartu na disk
 			</Button>
 
-			<Popover open={uploadInProgress}>
-				<PopoverAnchor>
-					{duplicateConfiguration ? (
-						<ConfirmationButton
-							disclaimer="Opravdu chcete přepsat aktuálně nahranou kartu?"
-							action={async () => await uploadConfiguration()}
-						>
-							<Button
-								variant="outline"
-								disabled={uploadInProgress || !protocol.connected || !configuration}
-							>
-								<p>Nahrát kartu do zařízení</p>
-							</Button>
-						</ConfirmationButton>
-					) : (
-						<Button
-							variant="outline"
-							disabled={uploadInProgress || !protocol.connected || !configuration}
-							onClick={async () => await uploadConfiguration()}
-						>
-							<p>Nahrát kartu do zařízení</p>
-						</Button>
-					)}
-				</PopoverAnchor>
-
-				<PopoverContent className="p-2 w-[250px] flex flex-col justify-between items-center gap-1">
-					<p className="text-xs text-muted-foreground">
-						{leftToUpload ?? 0} / {totalItemsToUpload}
-					</p>
-
-					<Progress className="rounded-sm h-1" value={100 - progressStep! * bytesLeft!} />
-				</PopoverContent>
-			</Popover>
+			{duplicateConfiguration ? (
+				<ConfirmationButton
+					disclaimer="Opravdu chcete přepsat aktuálně nahranou kartu?"
+					action={async () => await uploadConfiguration()}
+				>
+					{uploadButton}
+				</ConfirmationButton>
+			) : (
+				uploadButton
+			)}
 
 			<Button variant="outline" onClick={async () => await generateConfigurationPdf()} disabled={!configuration}>
 				Uložit pdf

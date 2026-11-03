@@ -12,6 +12,8 @@ export function ColorDot({ size, value }: ColorDot) {
 				height: size,
 				borderRadius: "50%",
 				display: "inline-block",
+				border: "1px solid rgba(0,0,0,0.2)",
+				boxSizing: "border-box",
 			}}
 		></div>
 	);

@@ -10,7 +10,7 @@ import {
 	SidebarMenuItem,
 	SidebarMenuSub,
 } from "~/components/ui/sidebar";
-import { FileSystemItem, useProtocol } from "~/components/protocol-context";
+import { FileSystemItem, isProtectedFile, isUndeletableFile, useProtocol } from "~/components/protocol-context";
 import { ProtocolInfo } from "~/components/protocol-info";
 import { CollapsibleTrigger, Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChevronRight } from "lucide-react";
@@ -19,9 +19,48 @@ import { ColorDot } from "~/components/color-dot";
 import { COLOR_LOOKUP_TABLE } from "~/store/useConfigurationStore";
 import { toast } from "sonner";
 import { ConfirmationButton } from "~/components/confirmation-button";
+import { Progress } from "~/components/ui/progress";
+import { useState } from "react";
 
 export function NavMain() {
-	const { connect, protocol } = useProtocol();
+	const { connect, disconnect, protocol } = useProtocol();
+
+	const [clearProgress, setClearProgress] = useState<{ done: number; total: number } | null>(null);
+
+	async function clearCommunicator() {
+		const { success, data } = await protocol.commands.ls();
+
+		if (!success) {
+			toast.error(data as string);
+			return;
+		}
+
+		const filesToRemove = (data as FileSystemItem[]).filter((file) => !isUndeletableFile(file.name));
+		const failedFiles: string[] = [];
+
+		try {
+			setClearProgress({ done: 0, total: filesToRemove.length });
+
+			for (const [index, file] of filesToRemove.entries()) {
+				const response = await protocol.commands.rm(file.name);
+
+				if (!response.success) {
+					failedFiles.push(file.name);
+				}
+
+				setClearProgress({ done: index + 1, total: filesToRemove.length });
+			}
+		} finally {
+			setClearProgress(null);
+		}
+
+		if (failedFiles.length > 0) {
+			toast.error(`Nepodařilo se smazat ${failedFiles.length} souborů: ${failedFiles.join(", ")}`);
+			return;
+		}
+
+		toast.success("Komunikátor byl úspěšně vyčištěn.");
+	}
 
 	async function deleteConfiguration(color: string) {
 		const { success, data } = await protocol.commands.ls();
@@ -31,10 +70,17 @@ export function NavMain() {
 			return;
 		}
 
-		const fileMask = color.toLowerCase().substring(0, 1);
+		// Audio files are named `${colorInitial}_${row}_${col}.wav` — match the full prefix,
+		// otherwise system files sharing the initial (e.g. CYAN vs. color_lookup_table / conf_info)
+		// would be deleted too.
+		const fileMask = `${color.toLowerCase().substring(0, 1)}_`;
 
 		for (const file of data as FileSystemItem[]) {
-			if (fileMask !== file.name.substring(0, 1)) {
+			if (isProtectedFile(file.name)) {
+				continue;
+			}
+
+			if (!file.name.startsWith(fileMask)) {
 				continue;
 			}
 
@@ -72,6 +118,38 @@ export function NavMain() {
 
 			{protocol.connected && (
 				<SidebarMenu>
+					<Button variant="outline" className="w-full mt-2" onClick={async () => await disconnect()}>
+						Odpojit komunikátor
+					</Button>
+
+					<ConfirmationButton
+						disclaimer="POZOR! Tato akce je nevratná, opravdu chcete smazat všechny soubory?"
+						side="right"
+						destructive
+						action={async () => await clearCommunicator()}
+					>
+						<Button
+							variant="outline"
+							className="w-full text-destructive hover:text-destructive"
+							disabled={!!clearProgress}
+						>
+							{clearProgress ? "Mazání souborů..." : "Vyčistit komunikátor"}
+						</Button>
+					</ConfirmationButton>
+
+					{clearProgress && (
+						<div className="flex flex-col gap-1 mt-1">
+							<p className="text-xs text-muted-foreground text-center">
+								Smazáno {clearProgress.done} / {clearProgress.total}
+							</p>
+
+							<Progress
+								className="rounded-sm h-1"
+								value={clearProgress.total ? (100 * clearProgress.done) / clearProgress.total : 100}
+							/>
+						</div>
+					)}
+
 					<Separator className="my-2" />
 
 					<p className="text-sm font-semibold">Nahrané konfigurace</p>
